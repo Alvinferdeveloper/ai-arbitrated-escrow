@@ -60,6 +60,7 @@ export const createDealSchema = z
       .max(2000, "Keep the description under 2000 characters")
       .default(""),
     priceUsd: usdPriceSchema,
+    deliveryEstimateDays: deliveryEstimateDaysSchema,
   })
   .refine((deal) => deal.sellerId !== deal.buyerId, {
     message: "The seller and the buyer must be different people",

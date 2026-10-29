@@ -14,6 +14,7 @@ const validDeal = {
   buyerId,
   title: "  Sony WH-1000XM4 headphones  ",
   priceUsd: "37.50",
+  deliveryEstimateDays: 3,
 };
 
 describe("deal schema", () => {
@@ -22,6 +23,7 @@ describe("deal schema", () => {
     expect(result.title).toBe("Sony WH-1000XM4 headphones");
     expect(result.description).toBe("");
     expect(result.priceUsd).toBe("37.50");
+    expect(result.deliveryEstimateDays).toBe(3);
   });
 
   it("accepts the exact USD range and rejects anything outside it", () => {
@@ -68,6 +70,17 @@ describe("deal schema", () => {
     expect(dealIdSchema.safeParse("not-a-uuid").success).toBe(false);
     expect(
       createDealSchema.safeParse({ ...validDeal, sellerId: "not-a-uuid" }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a deal without a delivery estimate", () => {
+    expect(
+      createDealSchema.safeParse({ ...validDeal, deliveryEstimateDays: undefined })
+        .success,
+    ).toBe(false);
+    expect(
+      createDealSchema.safeParse({ ...validDeal, deliveryEstimateDays: "15" })
+        .success,
     ).toBe(false);
   });
 
