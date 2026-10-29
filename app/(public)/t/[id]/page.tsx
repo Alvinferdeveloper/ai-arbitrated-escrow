@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { AlertCircle } from "lucide-react";
 import { connection } from "next/server";
 import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
@@ -9,7 +10,10 @@ import { Button } from "@/components/ui/button";
 import { getDemoDeal } from "@/demo/data";
 import { formatDeadline } from "@/lib/deals/deadline";
 import { formatMoney } from "@/lib/deals/money";
+import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
+import { getTrustLinkDeal } from "@/lib/db/deal-store";
+import { isSupabaseConfigured } from "@/lib/db/server";
 
 export default function TrustLinkPage({ params }: PageProps<"/t/[id]">) {
   return (
@@ -29,7 +33,24 @@ async function TrustLinkContent({
 }: Pick<PageProps<"/t/[id]">, "params">) {
   await connection();
   const { id } = await params;
-  const deal = getDemoDeal(id);
+
+  if (!dealIdSchema.safeParse(id).success) notFound();
+
+  let deal: DealView | null = null;
+  let loadFailed = false;
+
+  if (isSupabaseConfigured()) {
+    try {
+      deal = await getTrustLinkDeal(id);
+    } catch (error) {
+      console.error("Could not load the Trust Link deal", error);
+      loadFailed = true;
+    }
+  } else {
+    deal = getDemoDeal(id);
+  }
+
+  if (loadFailed) return <TrustLinkLoadError />;
 
   if (!deal) notFound();
 
@@ -115,6 +136,27 @@ async function TrustLinkContent({
 }
 
 function BuyerAction({ deal }: { deal: DealView }) {
+  if (deal.state === "AWAITING_PAYMENT") {
+    return (
+      <section aria-labelledby="buyer-action-heading" className="space-y-3">
+        <h2
+          id="buyer-action-heading"
+          className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+        >
+          The buyer&apos;s next step
+        </h2>
+        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
+          {deal.seller.displayName} is waiting for the payment of{" "}
+          <span className="font-mono tabular-nums">
+            {formatMoney(deal.priceCents)}
+          </span>
+          . This demo build does not process the payment yet; the checkout goal
+          is to show the deal and its evidence before the money moves.
+        </p>
+      </section>
+    );
+  }
+
   if (deal.state === "SHIPPED") {
     return (
       <section aria-labelledby="buyer-action-heading" className="space-y-3">
@@ -193,5 +235,25 @@ function TrustLinkSkeleton() {
       </div>
       <div aria-hidden="true" className="h-64 rounded-lg border border-rule-line bg-kraft" />
     </div>
+  );
+}
+
+function TrustLinkLoadError() {
+  return (
+    <section
+      role="alert"
+      className="space-y-2 rounded-lg border border-blocked bg-blocked-wash p-4"
+    >
+      <div className="flex items-center gap-2 text-blocked">
+        <AlertCircle aria-hidden="true" size={16} strokeWidth={1.75} />
+        <h2 className="text-[1.125rem] font-semibold leading-[1.35]">
+          This deal could not be loaded
+        </h2>
+      </div>
+      <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
+        The database answered with an error. Ask the seller for the link again
+        later; no money moves while the deal is unavailable.
+      </p>
+    </section>
   );
 }
