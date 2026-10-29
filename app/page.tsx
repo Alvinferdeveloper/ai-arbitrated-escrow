@@ -51,7 +51,10 @@ export default function Home() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <ButtonLink href={`/t/${firstDeal.id}`}>Open the buyer view</ButtonLink>
-          <ButtonLink href="#how-it-works" variant="secondary">
+          <ButtonLink href="/seller" variant="secondary">
+            Open the seller view
+          </ButtonLink>
+          <ButtonLink href="#how-it-works" variant="ghost">
             Read how it works
           </ButtonLink>
         </div>
