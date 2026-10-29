@@ -35,6 +35,24 @@ PayPal webhook confirms the money moved.
 - `PRODUCT.md`: product rules, requirements and priorities
 - `DESIGN.md`: design system
 
+## PayPal setup
+
+Add the sandbox credentials to `.env.local`:
+
+```bash
+PAYPAL_ENVIRONMENT=SANDBOX
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_WEBHOOK_ID=...
+NEXT_PUBLIC_PAYPAL_CLIENT_ID=...
+```
+
+`PAYPAL_WEBHOOK_ID` comes from the PayPal webhook subscription that points at
+`/api/paypal/webhook`. The action system can queue releases and refunds; the
+settlement runner calls the payouts or refunds API with the same idempotency
+key PayPal uses, and the deal only leaves the mediator when PayPal's webhook
+confirms the money moved.
+
 ## Test credentials
 
 To be added: sandbox buyer account, demo mode instructions.
