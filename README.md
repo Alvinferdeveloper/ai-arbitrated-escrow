@@ -22,8 +22,10 @@ pnpm supabase db push
 
 `db push` applies the SQL in `supabase/migrations/` but does not run the demo
 seed. Run `supabase/seed.sql` once in the Supabase SQL editor (or with `psql`)
-to load the three mediator cases. Without Supabase credentials the mediator
-queue falls back to the local demo data and decisions are disabled.
+to load the demo users and the three mediator cases. Supabase is optional for
+browsing: the mediator queue and the Trust Link fall back to the local demo
+data until credentials are set. Creating deals, uploading evidence and sending
+money require it.
 
 The mediator actions call the state machine. Requesting evidence moves the deal
 back to the seller or buyer and writes an `events` row. A release or refund
@@ -34,6 +36,19 @@ PayPal webhook confirms the money moved.
 
 - `PRODUCT.md`: product rules, requirements and priorities
 - `DESIGN.md`: design system
+
+## Create a deal
+
+1. Open `/seller`.
+2. Pick a seeded seller and buyer, write the title, description, price
+   (10 to 100 USD) and a delivery estimate (up to 14 days).
+3. Submitting writes the deal through `create_deal` (state `AWAITING_PAYMENT`
+   plus the first `events` row) and takes you to the Trust Link at
+   `/t/<deal id>`.
+
+The Trust Link reads the real deal once Supabase is configured, including
+evidence photos (private bucket, short-lived signed URLs) and the latest
+evidence audit. Without Supabase it renders the seeded demo deals.
 
 ## PayPal setup
 
