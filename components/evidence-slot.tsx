@@ -1,0 +1,42 @@
+import { CircleCheck, Clock } from "lucide-react";
+import type { EvidenceView } from "@/lib/deals/types";
+
+export function EvidenceSlot({ evidence }: { evidence: EvidenceView }) {
+  const uploaded = evidence.status === "uploaded";
+
+  return (
+    <figure className="overflow-hidden rounded-lg border border-rule-line bg-sheet">
+      <div className="relative flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-kraft p-6 text-center">
+        <span
+          aria-hidden="true"
+          className="font-mono text-[2rem] leading-none text-ink-muted"
+        >
+          {evidence.slot}
+        </span>
+        <span className="text-[0.8125rem] font-medium text-ink-muted">
+          {uploaded ? "Demo photo" : "No photo yet"}
+        </span>
+      </div>
+      <figcaption className="border-t border-rule-line p-4">
+        <p className="text-[0.875rem] font-medium text-ink">
+          Photo {evidence.slot}: {evidence.title}
+        </p>
+        <p className="mt-1 text-[0.875rem] leading-[1.55] text-ink-muted">
+          {evidence.description}
+        </p>
+        <p
+          className={`mt-3 inline-flex items-center gap-1.5 text-[0.8125rem] font-medium ${
+            uploaded ? "text-cleared" : "text-ink-muted"
+          }`}
+        >
+          {uploaded ? (
+            <CircleCheck aria-hidden="true" size={16} strokeWidth={1.75} />
+          ) : (
+            <Clock aria-hidden="true" size={16} strokeWidth={1.75} />
+          )}
+          {uploaded ? "Photo ready" : "Waiting for the photo"}
+        </p>
+      </figcaption>
+    </figure>
+  );
+}
