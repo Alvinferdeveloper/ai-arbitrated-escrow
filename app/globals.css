@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+/* Design tokens. Mirror of the DESIGN.md frontmatter; change both together. Light theme only. */
+:root {
+  --postal-ink: oklch(0.45 0.19 265);
+  --postal-ink-deep: oklch(0.38 0.17 265);
+  --postal-ink-wash: oklch(0.95 0.03 265);
+  --paper: oklch(0.975 0.006 75);
+  --sheet: oklch(0.993 0.003 75);
+  --kraft: oklch(0.945 0.014 75);
+  --rule-line: oklch(0.89 0.012 75);
+  --ink: oklch(0.24 0.015 265);
+  --ink-muted: oklch(0.5 0.015 265);
+  --on-postal-ink: oklch(0.99 0.004 75);
+  --cleared: oklch(0.5 0.13 150);
+  --cleared-wash: oklch(0.95 0.04 150);
+  --flagged: oklch(0.52 0.13 60);
+  --flagged-wash: oklch(0.96 0.05 80);
+  --blocked: oklch(0.52 0.19 27);
+  --blocked-wash: oklch(0.96 0.03 27);
+
+  --shadow-float: 0 8px 24px -8px oklch(0.24 0.015 265 / 0.18),
+    0 1px 2px oklch(0.24 0.015 265 / 0.08);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+@theme inline {
+  --color-postal-ink: var(--postal-ink);
+  --color-postal-ink-deep: var(--postal-ink-deep);
+  --color-postal-ink-wash: var(--postal-ink-wash);
+  --color-paper: var(--paper);
+  --color-sheet: var(--sheet);
+  --color-kraft: var(--kraft);
+  --color-rule-line: var(--rule-line);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-on-postal-ink: var(--on-postal-ink);
+  --color-cleared: var(--cleared);
+  --color-cleared-wash: var(--cleared-wash);
+  --color-flagged: var(--flagged);
+  --color-flagged-wash: var(--flagged-wash);
+  --color-blocked: var(--blocked);
+  --color-blocked-wash: var(--blocked-wash);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-float: var(--shadow-float);
+  --ease-out-quart: var(--ease-out-quart);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-property: opacity !important;
+    animation: none !important;
+  }
+}
