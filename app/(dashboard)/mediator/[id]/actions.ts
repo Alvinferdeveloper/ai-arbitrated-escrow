@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/db/server";
+import { runPendingSettlement } from "@/lib/paypal/settlement-runner";
 import { SupabaseMediatorDecisionStore } from "@/lib/db/mediator-store";
 import {
   MediationConflictError,
@@ -86,6 +87,10 @@ export async function decideMediationCase(
           },
       new SupabaseMediatorDecisionStore(),
     );
+
+    if (result.status === "SETTLEMENT_QUEUED") {
+      await runPendingSettlement(decision.caseId);
+    }
 
     revalidatePath("/mediator");
     revalidatePath(`/mediator/${decision.caseId}`);
