@@ -8,6 +8,7 @@ import type { EvidencePhotoSlot } from "@/lib/agents/ports";
 import { EVIDENCE_SLOT_COPY } from "@/lib/deals/evidence";
 import { EVIDENCE_UPLOAD_SLOTS, photoFieldName } from "@/lib/deals/evidence-upload";
 import { preparePhoto, type PreparedPhoto } from "@/lib/deals/prepare-photo";
+import { SampleEvidencePicker } from "./sample-evidence-picker";
 
 type SlotState =
   | { status: "empty" }
@@ -133,6 +134,8 @@ export function EvidenceUploadForm({ dealId }: { dealId: string }) {
           starts as soon as all three are in.
         </p>
       </div>
+
+      <SampleEvidencePicker disabled={uploading} onLoad={choose} />
 
       <div className="grid gap-4 sm:grid-cols-3">
         {EVIDENCE_UPLOAD_SLOTS.map((slot) => (

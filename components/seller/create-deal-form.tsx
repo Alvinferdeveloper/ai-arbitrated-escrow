@@ -1,11 +1,12 @@
 "use client";
 
 import { AlertCircle } from "lucide-react";
-import { useActionState } from "react";
+import { useActionState, useRef } from "react";
 import { createDealAction, type CreateDealFormState } from "@/app/(dashboard)/seller/actions";
 import { Button } from "@/components/ui/button";
 import type { PartyOption } from "@/lib/db/deal-store";
-import { MAX_DELIVERY_ESTIMATE_DAYS } from "@/lib/config";
+import { SAMPLE_LISTING } from "@/demo/sample-evidence";
+import { DEMO_MODE, MAX_DELIVERY_ESTIMATE_DAYS } from "@/lib/config";
 
 const FIELD =
   "w-full rounded-md border border-rule-line bg-sheet text-[1rem] text-ink placeholder:text-ink-muted focus:outline-none focus:border-postal-ink focus:ring-2 focus:ring-postal-ink focus:ring-offset-2 focus:ring-offset-paper disabled:bg-kraft disabled:text-ink-muted aria-[invalid=true]:border-blocked aria-[invalid=true]:ring-blocked";
@@ -48,8 +49,31 @@ export function CreateDealForm({
   const invalid =
     state.status === "INVALID_INPUT" || state.status === "PARTY_NOT_FOUND";
 
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Matches the sample evidence photos, so the demo audit compares like with like.
+  function fillSampleListing() {
+    const fields = formRef.current?.elements;
+    if (!fields) return;
+    for (const [name, value] of Object.entries(SAMPLE_LISTING)) {
+      const field = fields.namedItem(name);
+      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+        field.value = value;
+      }
+    }
+  }
+
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
+      {DEMO_MODE ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-rule-line p-4">
+          <p className="text-[0.875rem] text-ink">Trying the demo? Start from the sample listing.</p>
+          <Button type="button" variant="ghost" size="sm" onClick={fillSampleListing}>
+            Use the sample listing
+          </Button>
+        </div>
+      ) : null}
+
       {invalid && state.message ? (
         <div
           role="alert"

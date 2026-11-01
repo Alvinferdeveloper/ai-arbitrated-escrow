@@ -76,6 +76,21 @@ rule fires or the model fails. The seller page and the Trust Link refresh every
 few seconds while the audit runs. `/api/cron/retry-audits` (every five minutes
 in `vercel.json`, same `CRON_SECRET`) reruns audits whose background run died.
 
+### Sample evidence
+
+With `NEXT_PUBLIC_DEMO_MODE=true` the create-deal form offers **Use the sample
+listing** and the upload form offers **Load sample evidence**. The samples are
+real photos that go through the same upload and audit; nothing is faked. Each
+scenario only shows up once its photos exist:
+
+```
+public/demo-evidence/honest/{A,B,C}.jpg             product, product in box, sealed parcel with a legible guide (about 1.4 kg)
+public/demo-evidence/wrong-weight/{A,B,C}.jpg       same A and B, guide shows a weight far too low (for example 0.4 kg)
+public/demo-evidence/different-product/{A,B,C}.jpg  A shows another product than the listing
+```
+
+The listing they match is `SAMPLE_LISTING` in `demo/sample-evidence.ts`.
+
 ## Buyer checkout
 
 On a Trust Link whose deal is `AWAITING_PAYMENT`, the buyer presses **Pay with
