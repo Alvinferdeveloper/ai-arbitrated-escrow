@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { Shipment } from "./shipping";
 import type { DealState } from "./states";
 import {
   submitMediatorDecision,
@@ -16,6 +17,7 @@ class InMemoryMediatorStore implements MediatorDecisionStore {
   private state: DealState;
   readonly events: TransitionEvent[] = [];
   readonly settlements: QueueSettlementInput[] = [];
+  readonly shipments: Shipment[] = [];
 
   constructor(state: DealState = "ESCALATED") {
     this.state = state;
@@ -37,6 +39,16 @@ class InMemoryMediatorStore implements MediatorDecisionStore {
     };
     this.events.push(event);
     return event;
+  }
+
+  async ship(record: TransitionRecord, shipment: Shipment): Promise<TransitionEvent> {
+    const event = await this.transition(record);
+    this.shipments.push(shipment);
+    return event;
+  }
+
+  async auditedShipment(): Promise<Shipment> {
+    return { carrier: "UPS", trackingNumber: "1Z999AA10123456784" };
   }
 
   async queueSettlement(
@@ -128,6 +140,37 @@ describe("submitMediatorDecision()", () => {
     expect(first.idempotencyKey).not.toBe(second.idempotencyKey);
     expect(first.idempotencyKey.length).toBeGreaterThanOrEqual(8);
     expect(first.idempotencyKey.length).toBeLessThanOrEqual(128);
+  });
+
+  it("approves shipping with the tracking from the audit", async () => {
+    const store = new InMemoryMediatorStore();
+
+    const result = await submitMediatorDecision(
+      { dealId: "deal-7", action: "APPROVE_SHIPPING", note: "Serial matches." },
+      store,
+    );
+
+    expect(result.status).toBe("SHIPPING_APPROVED");
+    expect(store.stateOf()).toBe("SHIPPED");
+    expect(store.settlements).toHaveLength(0);
+    expect(store.shipments).toEqual([
+      { carrier: "UPS", trackingNumber: "1Z999AA10123456784" },
+    ]);
+    expect(store.events[0]).toMatchObject({
+      from: "ESCALATED",
+      to: "SHIPPED",
+      actor: "mediator",
+      payload: { decision: "APPROVE_SHIPPING", note: "Serial matches." },
+    });
+  });
+
+  it("does not approve shipping for a deal that is no longer escalated", async () => {
+    const store = new InMemoryMediatorStore("REFUNDED");
+
+    await expect(
+      submitMediatorDecision({ dealId: "deal-8", action: "APPROVE_SHIPPING" }, store),
+    ).rejects.toBeInstanceOf(TransitionConflictError);
+    expect(store.shipments).toHaveLength(0);
   });
 
   it("does not accept a decision for a deal that is no longer escalated", async () => {

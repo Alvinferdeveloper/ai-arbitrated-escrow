@@ -19,12 +19,14 @@ export function MediatorActions({
   sellerName,
   buyerName,
   settlement,
+  canApproveShipping,
 }: {
   caseId: string;
   amountCents: number;
   sellerName: string;
   buyerName: string;
   settlement: MediationSettlementView | null;
+  canApproveShipping: boolean;
 }) {
   const busy = useRef(false);
   const [pending, setPending] = useState<MediationDecision | null>(null);
@@ -161,6 +163,15 @@ export function MediatorActions({
             </div>
           </div>
         </div>
+      ) : pending?.action === "APPROVE_SHIPPING" ? (
+        <ConfirmPanel
+          title={`Approve shipping for ${sellerName}?`}
+          detail={`The deal moves to shipped with the tracking read from the guide. The ${formatMoney(amountCents)} stays held until ${buyerName} confirms receipt or the deadline passes.`}
+          confirmLabel={submitting ? "Approving..." : "Confirm shipping"}
+          pending={submitting}
+          onConfirm={() => submit({ action: "APPROVE_SHIPPING" })}
+          onCancel={cancel}
+        />
       ) : pending?.action === "RELEASE" ? (
         <ConfirmPanel
           title={`Release ${formatMoney(amountCents)} to ${sellerName}?`}
@@ -231,12 +242,21 @@ export function MediatorActions({
         </div>
       ) : (
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-          <Button
-            type="button"
-            onClick={() => setPending({ action: "RELEASE" })}
-          >
-            Release to seller
-          </Button>
+          {canApproveShipping ? (
+            <Button
+              type="button"
+              onClick={() => setPending({ action: "APPROVE_SHIPPING" })}
+            >
+              Approve shipping
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              onClick={() => setPending({ action: "RELEASE" })}
+            >
+              Release to seller
+            </Button>
+          )}
           <Button
             type="button"
             variant="destructive"

@@ -30,8 +30,9 @@ export const TRANSITIONS: Record<DealState, readonly DealState[]> = {
   SHIPPED: ["DISPUTED", "RELEASED", "ESCALATED"],
   DISPUTED: ["ARBITRATING", "ESCALATED"],
   ARBITRATING: ["RELEASED", "REFUNDED", "ESCALATED"],
-  // Mediator: release, refund, or request more evidence (back to seller or buyer).
-  ESCALATED: ["RELEASED", "REFUNDED", "FUNDS_HELD", "DISPUTED"],
+  // Mediator: release, refund, request more evidence (back to seller or buyer),
+  // or approve shipping for a case escalated before the parcel left.
+  ESCALATED: ["RELEASED", "REFUNDED", "FUNDS_HELD", "DISPUTED", "SHIPPED"],
   RELEASED: [],
   REFUNDED: [],
 };

@@ -97,6 +97,22 @@ export function assertTransitionAllowed(input: TransitionInput): void {
     );
   }
 
+  // Shipping starts from the audit (the AI passed the evidence) or from a
+  // person who reviewed an escalated case. Nobody else opens the dispute window.
+  if (to === "SHIPPED") {
+    const allowedActor = from === "AUDITING" ? "ai" : from === "ESCALATED" ? "mediator" : null;
+
+    if (actor !== allowedActor) {
+      throw new GuardedTransitionError(
+        dealId,
+        from,
+        to,
+        actor,
+        "only a passed audit or a mediator may start shipping",
+      );
+    }
+  }
+
   // Same rule for the incoming capture: the approval route starts the capture,
   // the PAYMENT.CAPTURE.COMPLETED webhook is what puts the money on hold.
   if (from === "AWAITING_PAYMENT" && to === "FUNDS_HELD" && actor !== "paypal") {

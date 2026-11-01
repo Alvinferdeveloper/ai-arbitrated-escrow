@@ -135,6 +135,8 @@ function buildCanonCase(now: Date): MediationCase {
     buyerEvidence: [evidence("D", new Date(now.getTime() - 7 * HOUR))],
     audit: deal.audit,
     settlement: null,
+    // Every seeded case comes from a dispute: the parcel already left.
+    canApproveShipping: false,
     timeline: [
       timelineEntry(
         "canon-payment",
@@ -205,6 +207,8 @@ function buildSteamDeckCase(now: Date): MediationCase {
     buyerEvidence: [evidence("D", new Date(now.getTime() - 30 * HOUR))],
     audit: steamAudit,
     settlement: null,
+    // Every seeded case comes from a dispute: the parcel already left.
+    canApproveShipping: false,
     timeline: [
       timelineEntry(
         "steam-payment",
@@ -275,6 +279,8 @@ function buildKeyboardCase(now: Date): MediationCase {
     buyerEvidence: [evidence("D", new Date(now.getTime() - 30 * HOUR))],
     audit: keyboardAudit,
     settlement: null,
+    // Every seeded case comes from a dispute: the parcel already left.
+    canApproveShipping: false,
     timeline: [
       timelineEntry(
         "keyboard-payment",

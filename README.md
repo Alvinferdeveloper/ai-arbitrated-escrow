@@ -30,7 +30,10 @@ uploading evidence and sending money require it.
 The mediator actions call the state machine. Requesting evidence moves the deal
 back to the seller or buyer and writes an `events` row. A release or refund
 writes a pending `payments` row and leaves the deal with the mediator until the
-PayPal webhook confirms the money moved.
+PayPal webhook confirms the money moved. A case escalated before the parcel
+left (for example `HIGH_VALUE` or an unreadable guide) offers **Approve
+shipping** instead of a release: the deal moves to `SHIPPED` through
+`ship_deal`, which stores the guide's tracking and the auto-release deadline.
 
 ## Docs
 

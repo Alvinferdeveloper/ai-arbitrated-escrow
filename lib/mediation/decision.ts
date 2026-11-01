@@ -23,6 +23,10 @@ export function describeMediationDecision(
     return `The refund of ${formatMoney(amountCents)} to ${buyerName} is queued. The deal stays with a mediator until PayPal confirms the refund.`;
   }
 
+  if (decision.action === "APPROVE_SHIPPING") {
+    return `Shipping is approved. ${sellerName} can send the parcel; the ${formatMoney(amountCents)} stays held until ${buyerName} confirms it arrived or the deadline passes.`;
+  }
+
   const target = decision.target === "BUYER" ? "buyer" : "seller";
   return `The case is back with the ${target} for more evidence. The money stays held.`;
 }

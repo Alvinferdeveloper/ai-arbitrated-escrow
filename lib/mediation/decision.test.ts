@@ -55,4 +55,10 @@ describe("describeMediationDecision()", () => {
       ),
     ).toContain("money stays held");
   });
+
+  it("keeps the money held when shipping is approved", () => {
+    const copy = describeMediationDecision({ action: "APPROVE_SHIPPING" }, context);
+    expect(copy).toContain("Marta Reyes can send the parcel");
+    expect(copy).toContain("85.00 USD stays held");
+  });
 });

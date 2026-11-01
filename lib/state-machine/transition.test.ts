@@ -48,6 +48,7 @@ class InMemoryStore implements DealTransitionStore {
 function actorFor(from: DealState, to: DealState): Actor {
   if (to === "RELEASED" || to === "REFUNDED") return "paypal";
   if (from === "AWAITING_PAYMENT" && to === "FUNDS_HELD") return "paypal";
+  if (to === "SHIPPED") return from === "AUDITING" ? "ai" : "mediator";
   return "system";
 }
 
@@ -116,6 +117,27 @@ describe("transition()", () => {
     expect(store.events).toHaveLength(0);
   });
 
+  it("starts shipping only from a passed audit or a mediator", async () => {
+    for (const [from, allowed] of [
+      ["AUDITING", "ai"],
+      ["ESCALATED", "mediator"],
+    ] as const) {
+      for (const actor of ["buyer", "seller", "mediator", "ai", "system", "paypal"] as const) {
+        if (actor === allowed) continue;
+
+        const store = new InMemoryStore({ deal: from });
+        await expect(
+          transition({ dealId: "deal", from, to: "SHIPPED", actor }, store),
+        ).rejects.toBeInstanceOf(GuardedTransitionError);
+        expect(store.events).toHaveLength(0);
+      }
+
+      const store = new InMemoryStore({ deal: from });
+      await transition({ dealId: "deal", from, to: "SHIPPED", actor: allowed }, store);
+      expect(store.stateOf("deal")).toBe("SHIPPED");
+    }
+  });
+
   it("reports a conflict when the deal moved since the caller read it", async () => {
     const store = new InMemoryStore({ deal: "SHIPPED" });
     await expect(
@@ -141,7 +163,7 @@ describe("transition()", () => {
         dealId: "deal",
         from: "AUDITING",
         to: "SHIPPED",
-        actor: "system",
+        actor: "ai",
         payload: { trackingNumber: "1Z999AA10123456784" },
       },
       store,

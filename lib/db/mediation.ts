@@ -36,6 +36,8 @@ type DealRow = {
   state: DealState;
   created_at: string;
   updated_at: string;
+  /** Only selected by the case loader. */
+  shipped_at?: string | null;
 };
 
 type UserRow = {
@@ -341,7 +343,7 @@ export async function getMediationCase(
   const { data: deal, error } = await admin
     .from("deals")
     .select(
-      "id, seller_id, buyer_id, title, price_cents, state, created_at, updated_at",
+      "id, seller_id, buyer_id, title, price_cents, state, created_at, updated_at, shipped_at",
     )
     .eq("id", id)
     .maybeSingle<DealRow>();
@@ -472,6 +474,7 @@ export async function getMediationCase(
           createdAt: new Date(settlement.created_at),
         }
       : null,
+    canApproveShipping: !deal.shipped_at && dispute?.status !== "OPEN",
     timeline: eventRows.map(timelineEntry),
   };
 }

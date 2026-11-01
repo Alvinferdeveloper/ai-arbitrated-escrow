@@ -17,6 +17,12 @@ export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 /** Time after the delivery estimate before funds auto-release to the seller. */
 export const AUTO_RELEASE_GRACE_MS = DEMO_MODE ? 2 * 60 * 1000 : 48 * 60 * 60 * 1000;
 
+/**
+ * Length of one delivery-estimate day for the auto-release deadline. Demo mode
+ * counts it as zero so a judge sees the release after the 2-minute grace.
+ */
+export const DELIVERY_DAY_MS = DEMO_MODE ? 0 : 24 * 60 * 60 * 1000;
+
 /** Max AI calls per demo session (NFR9). */
 export const AI_CALLS_PER_SESSION = Number(process.env.AI_CALLS_PER_SESSION ?? 20);
 

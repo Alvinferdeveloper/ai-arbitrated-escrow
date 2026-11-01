@@ -30,6 +30,11 @@ const requestSchema = z.discriminatedUnion("action", [
   }),
   z.object({
     caseId: z.string().uuid(),
+    action: z.literal("APPROVE_SHIPPING"),
+    note: z.string().trim().max(2000).optional(),
+  }),
+  z.object({
+    caseId: z.string().uuid(),
     action: z.literal("REQUEST_EVIDENCE"),
     target: z.enum(["SELLER", "BUYER"]),
     note: z.string().trim().max(2000).optional(),

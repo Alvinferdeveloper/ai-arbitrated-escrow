@@ -174,6 +174,7 @@ export default async function MediatorCasePage({
         sellerName={caseFile.seller.displayName}
         buyerName={caseFile.buyer.displayName}
         settlement={caseFile.settlement}
+        canApproveShipping={caseFile.canApproveShipping}
       />
 
       <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">

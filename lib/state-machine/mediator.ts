@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { shipDeal, type Shipment, type ShippingStore } from "./shipping";
 import {
   transition,
   type DealTransitionStore,
@@ -9,12 +10,14 @@ import {
 // release/refund. Release and refund are settlement requests, not transitions:
 // the deal stays ESCALATED until PayPal's webhook confirms the money moved.
 // The pending payment row is written before any PayPal call, so a retry can
-// reuse the same idempotency key.
+// reuse the same idempotency key. Approving shipping is a transition too, and
+// only exists for cases escalated before the parcel left.
 
 export const MEDIATOR_ACTIONS = [
   "RELEASE",
   "REFUND",
   "REQUEST_EVIDENCE",
+  "APPROVE_SHIPPING",
 ] as const;
 export type MediatorAction = (typeof MEDIATOR_ACTIONS)[number];
 
@@ -47,7 +50,7 @@ export type MediatorDecisionInput =
     }
   | {
       dealId: string;
-      action: "RELEASE" | "REFUND";
+      action: "RELEASE" | "REFUND" | "APPROVE_SHIPPING";
       note?: string;
     };
 
@@ -68,6 +71,10 @@ export type MediatorDecisionResult =
       status: "SETTLEMENT_QUEUED";
       action: "RELEASE" | "REFUND";
       settlement: MediationSettlement;
+    }
+  | {
+      status: "SHIPPING_APPROVED";
+      event: TransitionEvent;
     };
 
 export type QueueSettlementInput = {
@@ -77,9 +84,11 @@ export type QueueSettlementInput = {
   idempotencyKey: string;
 };
 
-export interface MediatorDecisionStore extends DealTransitionStore {
+export interface MediatorDecisionStore extends DealTransitionStore, ShippingStore {
   /** Persists a pending PAYOUT/REFUND row without moving the deal state. */
   queueSettlement(input: QueueSettlementInput): Promise<MediationSettlement>;
+  /** Carrier and tracking number read from the deal's latest finished audit. */
+  auditedShipment(dealId: string): Promise<Shipment>;
 }
 
 export class MediationConflictError extends Error {
@@ -116,6 +125,24 @@ export async function submitMediatorDecision(
     );
 
     return { status: "EVIDENCE_REQUESTED", target: input.target, event };
+  }
+
+  if (input.action === "APPROVE_SHIPPING") {
+    const event = await shipDeal(
+      {
+        dealId: input.dealId,
+        from: "ESCALATED",
+        actor: "mediator",
+        shipment: await store.auditedShipment(input.dealId),
+        payload: {
+          decision: input.action,
+          ...(input.note ? { note: input.note } : {}),
+        },
+      },
+      store,
+    );
+
+    return { status: "SHIPPING_APPROVED", event };
   }
 
   const settlement = await store.queueSettlement({

@@ -7,8 +7,14 @@ import {
   type QueueSettlementInput,
   type SettlementPurpose,
 } from "@/lib/state-machine/mediator";
-import { DealNotFoundError } from "@/lib/state-machine/transition";
+import type { Shipment } from "@/lib/state-machine/shipping";
+import {
+  DealNotFoundError,
+  type TransitionEvent,
+  type TransitionRecord,
+} from "@/lib/state-machine/transition";
 import { getSupabaseAdmin } from "./server";
+import { SupabaseShippingStore, loadAuditedShipment } from "./shipping-store";
 import { SupabaseTransitionStore } from "./transition-store";
 
 type SettlementRpcRow = {
@@ -23,6 +29,16 @@ export class SupabaseMediatorDecisionStore
   extends SupabaseTransitionStore
   implements MediatorDecisionStore
 {
+  private readonly shipping = new SupabaseShippingStore();
+
+  ship(record: TransitionRecord, shipment: Shipment): Promise<TransitionEvent> {
+    return this.shipping.ship(record, shipment);
+  }
+
+  auditedShipment(dealId: string): Promise<Shipment> {
+    return loadAuditedShipment(dealId);
+  }
+
   async queueSettlement(
     input: QueueSettlementInput,
   ): Promise<MediationSettlement> {

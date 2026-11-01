@@ -44,6 +44,8 @@ export type MediationCase = {
   buyerEvidence: EvidenceView[];
   audit: AuditReportView | null;
   settlement: MediationSettlementView | null;
+  /** True for a case escalated before the parcel left, with no dispute open. */
+  canApproveShipping: boolean;
   timeline: MediationTimelineEntry[];
 };
 
