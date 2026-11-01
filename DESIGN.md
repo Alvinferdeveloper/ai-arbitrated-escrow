@@ -1,6 +1,6 @@
 ---
 name: Project Shield
-description: Escrow and AI evidence arbitration for 10 to 100 USD peer-to-peer sales on PayPal.
+description: Escrow and AI evidence arbitration for peer-to-peer sales on PayPal.
 colors:
   postal-ink: "oklch(0.45 0.19 265)"
   postal-ink-deep: "oklch(0.38 0.17 265)"
@@ -281,7 +281,7 @@ error. Touch targets are at least 44 px; primary buttons are 48 px tall.
 - **Focus:** stroke becomes Postal Ink plus the 2 px focus ring.
 - **Error / Disabled:** Blocked stroke and message; disabled is Kraft fill with Ink Muted text.
 - **Amount field:** Geist Mono, `inputmode="decimal"`, `USD` suffix inside the field, inline
-  validation for the 10 to 100 USD range.
+  inline validation. Never print an amount range in the UI.
 
 ### Navigation
 - **Mobile:** a 56 px top bar on Paper with a 1 px bottom Rule Line: product name on the left,

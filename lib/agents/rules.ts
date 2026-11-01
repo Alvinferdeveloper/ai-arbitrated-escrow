@@ -46,7 +46,21 @@ export function missingGuideFields(guide: EvidenceAudit["guide"]): string[] {
   return ESCALATION_RULES.requiredGuideFields.filter((field) => guide[field] === null);
 }
 
-export function evaluateEvidenceRules(audit: EvidenceAudit): EvidenceRuleDecision {
+export type EvidenceRuleContext = {
+  priceCents: number;
+};
+
+export function isHighValue(
+  priceCents: number,
+  thresholdCents = ESCALATION_RULES.highValueReviewAboveCents,
+): boolean {
+  return priceCents > thresholdCents;
+}
+
+export function evaluateEvidenceRules(
+  audit: EvidenceAudit,
+  context: EvidenceRuleContext,
+): EvidenceRuleDecision {
   // CONFLICTING_EVIDENCE belongs to arbitration, where buyer and seller photos
   // can contradict each other. Before shipping there is no second side, so the
   // model's inconsistency list is shown in the report but does not fire it.
@@ -64,6 +78,11 @@ export function evaluateEvidenceRules(audit: EvidenceAudit): EvidenceRuleDecisio
 
   if (isWeightOutOfRange(audit.guide.weightKg, audit.product.expectedWeightKg)) {
     triggeredRules.push("WEIGHT_OUT_OF_RANGE");
+  }
+
+  // Fires on clean evidence too: the amount alone justifies a second look.
+  if (isHighValue(context.priceCents)) {
+    triggeredRules.push("HIGH_VALUE");
   }
 
   const evidenceIssues: EvidenceIssue[] = [];

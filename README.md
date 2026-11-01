@@ -1,6 +1,6 @@
 # Project Shield
 
-Escrow and AI evidence arbitration for 10 to 100 USD peer-to-peer sales on PayPal.
+Escrow and AI evidence arbitration for peer-to-peer sales on PayPal.
 Built for the PayPal AI Hackathon. Sandbox only: no real money moves.
 
 > Working title. The final name is set in `lib/config.ts`.
@@ -41,7 +41,8 @@ PayPal webhook confirms the money moved.
 
 1. Open `/seller`.
 2. Pick a seeded seller and buyer, write the title, description, price
-   (10 to 100 USD) and a delivery estimate (up to 14 days).
+   (USD, from 1.00) and a delivery estimate (up to 14 days). Deals above
+   500 USD always get a mediator's review before shipping (`HIGH_VALUE`).
 3. Submitting writes the deal through `create_deal` (state `AWAITING_PAYMENT`
    plus the first `events` row) and takes you to the Trust Link at
    `/t/<deal id>`.

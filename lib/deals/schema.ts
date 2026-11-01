@@ -9,7 +9,7 @@ import { usdToCents } from "./money";
 // Boundary schemas for deal input. Amounts arrive as decimal USD strings and
 // are converted to integer cents with money.usdToCents().
 
-const USD_AMOUNT_PATTERN = /^\d{1,3}(\.\d{1,2})?$/;
+const USD_AMOUNT_PATTERN = /^\d{1,6}(\.\d{1,2})?$/;
 const MIN_CENTS = MIN_DEAL_AMOUNT * 100;
 const MAX_CENTS = MAX_DEAL_AMOUNT * 100;
 
@@ -26,10 +26,15 @@ export const usdPriceSchema = z
     }
 
     const cents = usdToCents(value);
-    if (cents < MIN_CENTS || cents > MAX_CENTS) {
+    if (cents < MIN_CENTS) {
       ctx.addIssue({
         code: "custom",
-        message: `The price must be between ${MIN_DEAL_AMOUNT} and ${MAX_DEAL_AMOUNT} USD`,
+        message: `Enter a price of at least ${MIN_DEAL_AMOUNT.toFixed(2)} USD`,
+      });
+    } else if (cents > MAX_CENTS) {
+      ctx.addIssue({
+        code: "custom",
+        message: "That price looks like a typo. Check the number of digits",
       });
     }
   });

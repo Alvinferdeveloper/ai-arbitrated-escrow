@@ -3,8 +3,13 @@
 export const APP_NAME = "Project Shield";
 
 export const CURRENCY = "USD" as const;
-export const MIN_DEAL_AMOUNT = 10;
-export const MAX_DEAL_AMOUNT = 100;
+/** Smallest deal PayPal and the payout fees make sensible. */
+export const MIN_DEAL_AMOUNT = 1;
+/**
+ * Sanity ceiling against typos, not a product limit. Large deals are allowed
+ * and reviewed by a person (HIGH_VALUE rule). Mirrors the deals CHECK.
+ */
+export const MAX_DEAL_AMOUNT = 100_000;
 export const MAX_DELIVERY_ESTIMATE_DAYS = 14;
 
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";

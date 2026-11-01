@@ -15,7 +15,7 @@ const SCENARIO_COPY = [
 const STEPS = [
   {
     title: "The seller creates a deal",
-    body: "A title, a price between 10 and 100 USD, and a description. Then a Trust Link to share with the buyer.",
+    body: "A title, a price and a description. Then a Trust Link to share with the buyer.",
   },
   {
     title: "The buyer pays",
@@ -39,7 +39,7 @@ export default function Home() {
       <AppBar right="Sandbox" />
       <main className="mx-auto w-full max-w-[640px] px-4 pb-20 pt-10 md:px-6 md:pt-14">
         <p className="text-[0.8125rem] font-medium text-ink-muted">
-          Escrow for 10 to 100 USD peer-to-peer sales
+          Escrow for peer-to-peer sales
         </p>
         <h1 className="mt-3 max-w-[18ch] text-[2.5rem] font-semibold leading-[1.05] tracking-[-0.03em] text-ink">
           Money held until the parcel is checked.

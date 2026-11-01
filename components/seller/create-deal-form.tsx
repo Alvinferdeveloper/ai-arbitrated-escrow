@@ -191,7 +191,7 @@ export function CreateDealForm({
             message={state.fieldErrors.priceUsd}
           />
           <p id="priceUsd-hint" className={HINT}>
-            Between 10 and 100 USD.
+            In USD. Larger deals get a person&apos;s review before shipping.
           </p>
         </div>
 

@@ -27,10 +27,10 @@ describe("deal schema", () => {
   });
 
   it("accepts the exact USD range and rejects anything outside it", () => {
-    for (const price of ["10", "10.00", "37.50", "100", "100.00"]) {
+    for (const price of ["1", "1.00", "37.50", "100.01", "2500", "100000.00"]) {
       expect(usdPriceSchema.safeParse(price).success).toBe(true);
     }
-    for (const price of ["9.99", "100.01", "0", "1000", "-10"]) {
+    for (const price of ["0.99", "0", "100000.01", "1000000", "-10"]) {
       expect(usdPriceSchema.safeParse(price).success).toBe(false);
     }
   });

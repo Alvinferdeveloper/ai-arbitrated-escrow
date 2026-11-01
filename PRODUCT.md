@@ -53,7 +53,7 @@ escrow on PayPal plus an AI evidence audit, with a human mediator for every doub
 
 ## Problem
 
-Peer-to-peer sales of 10 to 100 USD (Marketplace, WhatsApp, Instagram) have no trusted middle.
+Peer-to-peer sales (Marketplace, WhatsApp, Instagram) have no trusted middle.
 The buyer fears paying and receiving nothing; the seller fears a buyer who lies about the
 parcel. Human dispute handling costs more than the sale itself, so nobody arbitrates.
 
@@ -81,7 +81,9 @@ parcel. Human dispute handling costs more than the sale itself, so nobody arbitr
 
 ## Hard product rules (never break these)
 
-- **USD only, 10 to 100 USD per deal.**
+- **USD only, any amount from 1.00 USD.** Deals above 500 USD always get a mediator's review
+  before shipping (`HIGH_VALUE`). `MAX_DEAL_AMOUNT` is a typo guard, not a product limit, and the
+  UI never advertises a range.
 - **Delivery estimate at most 14 days.** Auto-release = estimate + 48 h (2 minutes in demo mode).
 - **The AI never moves money.** The AI and the mediator only submit a decision to the state machine;
   the state machine runs the guarded PayPal action.
@@ -103,6 +105,7 @@ parcel. Human dispute handling costs more than the sale itself, so nobody arbitr
 | Conflicting evidence | Buyer and seller evidence contradict and no rule above settles it |
 | Technical failure | Audit fails, times out or returns invalid output |
 | Out-of-band reversal | PayPal sends `PAYMENT.CAPTURE.REVERSED` |
+| High-value deal | The deal is above 500 USD, even with clean evidence |
 
 Thresholds live in `lib/agents/rules.config.ts` and are tuned with the eval set.
 
@@ -110,7 +113,7 @@ Thresholds live in `lib/agents/rules.config.ts` and are tuned with the eval set.
 
 | ID | Requirement | Priority |
 | --- | --- | --- |
-| FR1 | Create a deal from a listing screenshot (AI extracts title, price, description) or a manual form, 10–100 USD | Must |
+| FR1 | Create a deal from a listing screenshot (AI extracts title, price, description) or a manual form, any USD amount | Must |
 | FR2 | Generate a shareable Trust Link | Must |
 | FR3 | Buyer pays with PayPal Checkout; payment captured into the platform account | Must |
 | FR4 | Seller uploads photos A, B, C and a delivery estimate ≤ 14 days | Must |

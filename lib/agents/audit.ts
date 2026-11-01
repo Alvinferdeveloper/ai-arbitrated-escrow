@@ -65,7 +65,7 @@ export async function auditEvidence({
       return technicalFailure("The model returned invalid evidence data");
     }
 
-    return evaluateEvidenceRules(parsed.data);
+    return evaluateEvidenceRules(parsed.data, { priceCents: input.priceCents });
   } catch (error) {
     return technicalFailure(
       error instanceof Error ? error.message : "The evidence audit failed",

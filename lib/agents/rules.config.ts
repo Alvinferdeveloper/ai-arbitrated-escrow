@@ -8,6 +8,11 @@ export const ESCALATION_RULES = {
   requiredGuideFields: ["carrier", "trackingNumber", "weightKg", "date"] as const,
   /** Audit time budget before it counts as a technical failure. */
   auditTimeoutMs: 60_000,
+  /**
+   * Deals above this amount always get a person's review before shipping.
+   * A photo of a sealed box is weak proof for an expensive item.
+   */
+  highValueReviewAboveCents: 50_000,
   /** Audits stuck in PENDING or RUNNING longer than this are retried by cron. */
   stuckAuditAfterMs: 3 * 60_000,
 } as const;
@@ -19,6 +24,7 @@ export const ESCALATION_RULE_IDS = [
   "CONFLICTING_EVIDENCE",
   "TECHNICAL_FAILURE",
   "OUT_OF_BAND_REVERSAL",
+  "HIGH_VALUE",
 ] as const;
 
 export type EscalationRuleId = (typeof ESCALATION_RULE_IDS)[number];
@@ -31,4 +37,5 @@ export const ESCALATION_RULE_LABELS: Record<EscalationRuleId, string> = {
   CONFLICTING_EVIDENCE: "Conflicting evidence",
   TECHNICAL_FAILURE: "Technical failure",
   OUT_OF_BAND_REVERSAL: "Out-of-band reversal",
+  HIGH_VALUE: "High-value deal",
 };

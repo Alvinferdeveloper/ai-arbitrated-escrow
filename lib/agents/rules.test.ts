@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
-  evaluateEvidenceRules,
+  evaluateEvidenceRules as evaluateWithContext,
+  isHighValue,
   isWeightOutOfRange,
   missingGuideFields,
 } from "./rules";
+import { ESCALATION_RULES } from "./rules.config";
 import type { EvidenceAudit } from "./schemas";
+
+const ORDINARY_PRICE_CENTS = 3750;
+
+function evaluateEvidenceRules(audit: EvidenceAudit) {
+  return evaluateWithContext(audit, { priceCents: ORDINARY_PRICE_CENTS });
+}
 
 const honestAudit: EvidenceAudit = {
   product: {
@@ -185,5 +193,32 @@ describe("evidence rules", () => {
       "UNREADABLE_GUIDE",
       "WEIGHT_OUT_OF_RANGE",
     ]);
+  });
+
+  it("sends a high-value deal to a person even when the evidence is clean", () => {
+    const threshold = ESCALATION_RULES.highValueReviewAboveCents;
+
+    const atThreshold = evaluateWithContext(honestAudit, { priceCents: threshold });
+    expect(atThreshold.outcome).toBe("PASS");
+    expect(atThreshold.triggeredRules).toEqual([]);
+
+    const above = evaluateWithContext(honestAudit, { priceCents: threshold + 1 });
+    expect(above.outcome).toBe("ESCALATE");
+    expect(above.triggeredRules).toEqual(["HIGH_VALUE"]);
+  });
+
+  it("keeps the other rules alongside HIGH_VALUE", () => {
+    const decision = evaluateWithContext(
+      withAudit({
+        product: { ...honestAudit.product, matchesListing: false },
+      }),
+      { priceCents: 250_000 },
+    );
+    expect(decision.triggeredRules).toEqual(["PRODUCT_MISMATCH", "HIGH_VALUE"]);
+  });
+
+  it("counts only amounts strictly above the threshold as high value", () => {
+    expect(isHighValue(50_000, 50_000)).toBe(false);
+    expect(isHighValue(50_001, 50_000)).toBe(true);
   });
 });
