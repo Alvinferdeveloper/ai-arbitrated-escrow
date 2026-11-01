@@ -134,6 +134,30 @@ describe("executeSettlement", () => {
     });
   });
 
+  it("submits a payout for a shipped deal after the buyer confirms", async () => {
+    const settlementRow = settlement({ dealState: "SHIPPED" });
+    const store = new InMemoryStore({ settlement: settlementRow });
+    const gateway = new InMemoryGateway();
+
+    const result = await executeSettlement("deal-1", store, gateway);
+
+    expect(result.outcome).toBe("SUBMITTED");
+    expect(gateway.payouts).toHaveLength(1);
+    expect(store.submitted[0]?.purpose).toBe("PAYOUT");
+  });
+
+  it("refuses to settle a deal that has not shipped", async () => {
+    const settlementRow = settlement({ dealState: "FUNDS_HELD" });
+    const store = new InMemoryStore({ settlement: settlementRow });
+    const gateway = new InMemoryGateway();
+
+    const result = await executeSettlement("deal-1", store, gateway);
+
+    expect(result.outcome).toBe("SKIPPED");
+    expect(result.reason).toBe("DEAL_NOT_OPEN_TO_SETTLE");
+    expect(gateway.payouts).toHaveLength(0);
+  });
+
   it("submits a refund using the stored capture id", async () => {
     const settlementRow = settlement({
       purpose: "REFUND",

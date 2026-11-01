@@ -89,7 +89,10 @@ export async function executeSettlement(
     return { outcome: "SKIPPED", reason: "NO_PENDING_SETTLEMENT" };
   }
 
+  // SHIPPED covers the buyer's confirmation and the auto-release cron; the
+  // deal reaches RELEASED only after PayPal's webhook confirms the payout.
   if (
+    settlement.dealState !== "SHIPPED" &&
     settlement.dealState !== "ESCALATED" &&
     settlement.dealState !== "ARBITRATING"
   ) {

@@ -4,10 +4,10 @@ import { AlertCircle } from "lucide-react";
 import { connection } from "next/server";
 import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
+import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
 import { StartCheckoutForm } from "@/components/buyer/start-checkout-form";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
-import { Button } from "@/components/ui/button";
 import { getDemoDeal } from "@/demo/data";
 import { formatDeadline } from "@/lib/deals/deadline";
 import { formatMoney } from "@/lib/deals/money";
@@ -117,6 +117,7 @@ async function TrustLinkContent({
       <BuyerAction
         deal={deal}
         checkoutEnabled={isSupabaseConfigured() && isPayPalConfigured()}
+        releaseEnabled={isSupabaseConfigured()}
         paymentInProgress={paymentInProgress}
       />
 
@@ -243,10 +244,12 @@ function PaymentNotice({ status }: { status: string | undefined }) {
 function BuyerAction({
   deal,
   checkoutEnabled,
+  releaseEnabled,
   paymentInProgress,
 }: {
   deal: DealView;
   checkoutEnabled: boolean;
+  releaseEnabled: boolean;
   paymentInProgress: boolean;
 }) {
   if (deal.state === "AWAITING_PAYMENT") {
@@ -288,16 +291,17 @@ function BuyerAction({
         >
           The buyer&apos;s next step
         </h2>
-        <Button type="button" disabled aria-describedby="buyer-action-note">
-          Confirm receipt of {formatMoney(deal.priceCents)}
-        </Button>
-        <p
-          id="buyer-action-note"
-          className="max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted"
-        >
-          Payment actions are not connected in this build. When they are, this releases
-          the money to {deal.seller.displayName} only after the payment provider confirms
-          the payout.
+        {releaseEnabled ? (
+          <ConfirmReceiptForm dealId={deal.id} amountCents={deal.priceCents} />
+        ) : (
+          <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+            Confirming receipt needs Supabase in this environment. The money stays
+            held while the deal is unavailable.
+          </p>
+        )}
+        <p className="max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted">
+          If the deadline passes first, the payout is sent automatically to{" "}
+          {deal.seller.displayName}.
         </p>
       </section>
     );

@@ -63,6 +63,23 @@ webhook cannot reach your machine, the Trust Link stays on "waiting for PayPal";
 use a tunnel (ngrok, cloudflared) and point the webhook at
 `https://<tunnel>/api/paypal/webhook`.
 
+## Release and auto-release
+
+On a `SHIPPED` deal the buyer presses **Confirm receipt**. That queues a
+`PAYOUT` row and sends the Payouts batch to the seller's PayPal email. The deal
+stays `SHIPPED` until `PAYMENT.PAYOUTS-ITEM.SUCCEEDED` confirms the transfer.
+If the buyer does nothing, `/api/cron/auto-release` releases every shipped deal
+whose `auto_release_at` has passed.
+
+```bash
+CRON_SECRET=...
+curl -H "Authorization: Bearer $CRON_SECRET" https://your-app/api/cron/auto-release
+```
+
+`vercel.json` runs that route every five minutes; check that your Vercel plan
+allows the schedule. The route processes five deals per call and is safe to
+call twice: the payout row and its idempotency key are reused.
+
 ## PayPal setup
 
 Add the sandbox credentials to `.env.local`:
