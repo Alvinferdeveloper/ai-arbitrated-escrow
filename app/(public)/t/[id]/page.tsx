@@ -98,7 +98,7 @@ async function TrustLinkContent({
           {deal.title}
         </h1>
         <p className="text-[0.9375rem] text-ink-muted">
-          Sold by {deal.seller.displayName} to {deal.buyer.displayName}.
+          Sold to you by {deal.seller.displayName}.
         </p>
         <p className="max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
           {deal.description}
@@ -107,10 +107,9 @@ async function TrustLinkContent({
 
       <section className="rounded-lg border border-rule-line bg-kraft p-4">
         <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
-          We are holding {formatMoney(deal.priceCents)} until the buyer confirms the
-          parcel arrived. If something is wrong, the buyer can open a dispute before
-          the deadline. No money moves on its own while a rule or a person is reviewing
-          the case.
+          We are holding {formatMoney(deal.priceCents)} until you confirm the parcel
+          arrived. If something is wrong, you can open a dispute before the deadline.
+          No money moves on its own while a rule or a person is reviewing the case.
         </p>
       </section>
 
@@ -259,7 +258,7 @@ function BuyerAction({
           id="buyer-action-heading"
           className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
         >
-          The buyer&apos;s next step
+          Your next step
         </h2>
         {paymentInProgress ? (
           <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
@@ -289,7 +288,7 @@ function BuyerAction({
           id="buyer-action-heading"
           className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
         >
-          The buyer&apos;s next step
+          Your next step
         </h2>
         {releaseEnabled ? (
           <ConfirmReceiptForm dealId={deal.id} amountCents={deal.priceCents} />
@@ -335,7 +334,7 @@ function BuyerAction({
         </h2>
         <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
           A person is reviewing both sides of the evidence. The money stays held until
-          the mediator releases it or refunds the buyer.
+          the mediator releases it to {deal.seller.displayName} or refunds you.
         </p>
       </section>
     );
