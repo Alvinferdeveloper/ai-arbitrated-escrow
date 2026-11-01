@@ -1,7 +1,7 @@
--- Demo data for the mediator queue. Fixed UUIDs match demo/data.ts and
--- demo/mediation.ts, so the same cases work with or without Supabase.
--- Safe to run more than once: every row is keyed by a fixed id and events are
--- only inserted when the deal has none.
+-- Demo data for the buyer/seller screens and the mediator queue. Fixed UUIDs
+-- match demo/data.ts and demo/mediation.ts, so the same cases work with or
+-- without Supabase. Safe to run more than once: every row is keyed by a fixed
+-- id and events are only inserted when the deal has none.
 
 insert into public.users (id, role, display_name, paypal_email, is_demo) values
   ('a1111111-1111-4111-8111-111111111111', 'seller', 'Marta Reyes', 'marta.reyes@example.com', true),
@@ -233,6 +233,131 @@ begin
         "summary": "The seller's evidence passed, but the automatic dispute review failed before it could compare both sides. A person needs to read the photos.",
         "claim": "Two switches are broken and the space bar sticks. The seller says the keyboard was tested before shipping."
       }$json$::jsonb, now() - interval '26 hours');
+  end if;
+end;
+$$;
+
+-- Buyer and seller demo deals used by the landing page and the Trust Link.
+-- Same ids and content as demo/data.ts, so the same scenarios work with or
+-- without Supabase.
+
+insert into public.deals (
+  id, seller_id, buyer_id, title, description, price_cents, state,
+  delivery_estimate_days, carrier, tracking_number, auto_release_at,
+  created_at, updated_at
+) values
+  (
+    'b1111111-1111-4111-8111-111111111111',
+    'a1111111-1111-4111-8111-111111111111',
+    'a2222222-2222-4222-8222-222222222222',
+    'Sony WH-1000XM4 headphones',
+    'Used for a year, no cracks. Includes the case, cable and original box.',
+    3750, 'SHIPPED', 3, 'UPS', '1Z999AA10123456784',
+    now() + interval '46 hours',
+    now() - interval '3 hours', now() - interval '2 hours'
+  ),
+  (
+    'b2222222-2222-4222-8222-222222222222',
+    'a4444444-4444-4444-8444-444444444444',
+    'a2222222-2222-4222-8222-222222222222',
+    'Nintendo Switch OLED, white',
+    'New, opened once to check the screen. Dock and cables included.',
+    9500, 'EVIDENCE_REJECTED', 4, null, null, null,
+    now() - interval '3 hours', now() - interval '2 hours'
+  )
+on conflict (id) do nothing;
+
+insert into public.payments (
+  id, deal_id, purpose, status, amount_cents, paypal_order_id,
+  paypal_capture_id, idempotency_key, created_at
+) values
+  (
+    'c1111111-1111-4111-8111-111111111111',
+    'b1111111-1111-4111-8111-111111111111',
+    'CAPTURE', 'COMPLETED', 3750, 'DEMO-ORDER-HEADPHONES', 'DEMO-CAPTURE-HEADPHONES',
+    'seed-capture-headphones-0001', now() - interval '3 hours'
+  ),
+  (
+    'c2222222-2222-4222-8222-222222222222',
+    'b2222222-2222-4222-8222-222222222222',
+    'CAPTURE', 'COMPLETED', 9500, 'DEMO-ORDER-SWITCH', 'DEMO-CAPTURE-SWITCH',
+    'seed-capture-switch-0001', now() - interval '3 hours'
+  )
+on conflict (id) do nothing;
+
+insert into public.evidence (
+  id, deal_id, type, uploaded_by, storage_path, sha256, mime_type,
+  size_bytes, width, height, created_at
+) values
+  ('d1111111-1111-4111-8111-111111111101', 'b1111111-1111-4111-8111-111111111111', 'A', 'a1111111-1111-4111-8111-111111111111', 'b1111111-1111-4111-8111-111111111111/A-seed.jpg', repeat('11', 32), 'image/jpeg', 210000, 1600, 1200, now() - interval '2 hours 50 minutes'),
+  ('d1111111-1111-4111-8111-111111111102', 'b1111111-1111-4111-8111-111111111111', 'B', 'a1111111-1111-4111-8111-111111111111', 'b1111111-1111-4111-8111-111111111111/B-seed.jpg', repeat('22', 32), 'image/jpeg', 205000, 1600, 1200, now() - interval '2 hours 50 minutes'),
+  ('d1111111-1111-4111-8111-111111111103', 'b1111111-1111-4111-8111-111111111111', 'C', 'a1111111-1111-4111-8111-111111111111', 'b1111111-1111-4111-8111-111111111111/C-seed.jpg', repeat('33', 32), 'image/jpeg', 220000, 1600, 1200, now() - interval '2 hours 50 minutes'),
+
+  ('d2222222-2222-4222-8222-222222222201', 'b2222222-2222-4222-8222-222222222222', 'A', 'a4444444-4444-4444-8444-444444444444', 'b2222222-2222-4222-8222-222222222222/A-seed.jpg', repeat('44', 32), 'image/jpeg', 210000, 1600, 1200, now() - interval '2 hours 50 minutes'),
+  ('d2222222-2222-4222-8222-222222222202', 'b2222222-2222-4222-8222-222222222222', 'B', 'a4444444-4444-4444-8444-444444444444', 'b2222222-2222-4222-8222-222222222222/B-seed.jpg', repeat('55', 32), 'image/jpeg', 205000, 1600, 1200, now() - interval '2 hours 50 minutes'),
+  ('d2222222-2222-4222-8222-222222222203', 'b2222222-2222-4222-8222-222222222222', 'C', 'a4444444-4444-4444-8444-444444444444', 'b2222222-2222-4222-8222-222222222222/C-seed.jpg', repeat('66', 32), 'image/jpeg', 220000, 1600, 1200, now() - interval '2 hours 50 minutes')
+on conflict (id) do nothing;
+
+insert into public.ai_audits (
+  id, deal_id, kind, status, model, prompt_version, result,
+  inconsistencies, triggered_rules, started_at, completed_at, created_at, updated_at
+) values
+  (
+    'e1111111-1111-4111-8111-111111111111',
+    'b1111111-1111-4111-8111-111111111111',
+    'EVIDENCE_AUDIT', 'DONE', 'seed', 'seed-v1',
+    $json${
+      "product": {"matchesListing": true, "expectedWeightKg": 0.3, "reason": "The black headphones in photo A match the model and condition in the listing."},
+      "packing": {"productInside": true, "reason": "Photo B shows the same headphones inside the box with the case and cable."},
+      "parcel": {"sealed": true, "guideVisible": true, "reason": "Photo C shows the closed parcel and the whole shipping guide."},
+      "guide": {"readable": true, "carrier": "UPS", "trackingNumber": "1Z999AA10123456784", "weightKg": 1.4, "date": "2026-10-28"},
+      "inconsistencies": []
+    }$json$::jsonb,
+    '[]'::jsonb, '{}'::text[],
+    now() - interval '2 hours 50 minutes', now() - interval '2 hours 40 minutes',
+    now() - interval '2 hours 50 minutes', now() - interval '2 hours 40 minutes'
+  ),
+  (
+    'e2222222-2222-4222-8222-222222222222',
+    'b2222222-2222-4222-8222-222222222222',
+    'EVIDENCE_AUDIT', 'DONE', 'seed', 'seed-v1',
+    $json${
+      "product": {"matchesListing": true, "expectedWeightKg": 1.4, "reason": "Photo A shows a white Switch OLED with the same joy-cons in the listing."},
+      "packing": {"productInside": true, "reason": "Photo B shows the console, dock and cables inside the box."},
+      "parcel": {"sealed": true, "guideVisible": true, "reason": "Photo C shows a sealed parcel and a full guide."},
+      "guide": {"readable": true, "carrier": "USPS", "trackingNumber": "9400111899223856928498", "weightKg": 0.4, "date": "2026-10-28"},
+      "inconsistencies": ["The guide records 0.4 kg. A Switch OLED with packing usually weighs 1.2 to 1.6 kg."]
+    }$json$::jsonb,
+    '[]'::jsonb, array['WEIGHT_OUT_OF_RANGE']::text[],
+    now() - interval '2 hours 50 minutes', now() - interval '2 hours 40 minutes',
+    now() - interval '2 hours 50 minutes', now() - interval '2 hours 40 minutes'
+  )
+on conflict (id) do nothing;
+
+do $$
+begin
+  if not exists (
+    select 1 from public.events
+    where deal_id = 'b1111111-1111-4111-8111-111111111111'
+  ) then
+    insert into public.events (deal_id, actor, from_state, to_state, payload, created_at) values
+      ('b1111111-1111-4111-8111-111111111111', 'paypal', null, 'FUNDS_HELD', '{"title":"Payment captured","detail":"37.50 USD is held in the platform account."}'::jsonb, now() - interval '3 hours'),
+      ('b1111111-1111-4111-8111-111111111111', 'system', 'FUNDS_HELD', 'AUDITING', '{"title":"Evidence audit started","detail":"The model checked photos A, B and C."}'::jsonb, now() - interval '2 hours 50 minutes'),
+      ('b1111111-1111-4111-8111-111111111111', 'ai', 'AUDITING', 'SHIPPED', '{"title":"Audit completed","detail":"Four checks passed and the guide is readable."}'::jsonb, now() - interval '2 hours 40 minutes');
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1 from public.events
+    where deal_id = 'b2222222-2222-4222-8222-222222222222'
+  ) then
+    insert into public.events (deal_id, actor, from_state, to_state, payload, created_at) values
+      ('b2222222-2222-4222-8222-222222222222', 'paypal', null, 'FUNDS_HELD', '{"title":"Payment captured","detail":"95.00 USD is held in the platform account."}'::jsonb, now() - interval '3 hours'),
+      ('b2222222-2222-4222-8222-222222222222', 'system', 'FUNDS_HELD', 'AUDITING', '{"title":"Evidence audit started","detail":"The model checked photos A, B and C."}'::jsonb, now() - interval '2 hours 50 minutes'),
+      ('b2222222-2222-4222-8222-222222222222', 'ai', 'AUDITING', 'EVIDENCE_REJECTED', '{"title":"Evidence rejected","detail":"The guide records 0.4 kg. That is too light for the switch, so shipping is blocked."}'::jsonb, now() - interval '2 hours 40 minutes');
   end if;
 end;
 $$;

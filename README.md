@@ -22,10 +22,10 @@ pnpm supabase db push
 
 `db push` applies the SQL in `supabase/migrations/` but does not run the demo
 seed. Run `supabase/seed.sql` once in the Supabase SQL editor (or with `psql`)
-to load the demo users and the three mediator cases. Supabase is optional for
-browsing: the mediator queue and the Trust Link fall back to the local demo
-data until credentials are set. Creating deals, uploading evidence and sending
-money require it.
+to load the demo users, the two Trust Link demo deals and the three mediator
+cases. Supabase is optional for browsing: the mediator queue and the Trust Link
+fall back to the local demo data until credentials are set. Creating deals,
+uploading evidence and sending money require it.
 
 The mediator actions call the state machine. Requesting evidence moves the deal
 back to the seller or buyer and writes an `events` row. A release or refund
