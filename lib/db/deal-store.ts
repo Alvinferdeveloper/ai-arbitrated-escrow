@@ -219,6 +219,18 @@ function summaryParty(
   return { id: user?.id ?? fallback, displayName: user?.display_name ?? "Unknown user" };
 }
 
+/** Current state of each deal that exists. */
+export async function getDealStates(ids: readonly string[]): Promise<Map<string, DealState>> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("deals")
+    .select("id, state")
+    .in("id", [...ids])
+    .returns<{ id: string; state: DealState }[]>();
+
+  if (error) fail("Could not load the deal states", error.message);
+  return new Map((data ?? []).map((row) => [row.id, row.state]));
+}
+
 /** Most recently changed deals first. */
 export async function listDeals(limit = 50): Promise<DealSummary[]> {
   const { data, error } = await getSupabaseAdmin()

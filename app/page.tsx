@@ -1,15 +1,20 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { ArrowUpRight } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
 import { HoldingSlip } from "@/components/holding-slip";
 import { StateStamp } from "@/components/state-stamp";
 import { ButtonLink } from "@/components/ui/button";
 import { DEMO_DEALS } from "@/demo/data";
+import { getDealStates } from "@/lib/db/deal-store";
+import { isSupabaseConfigured } from "@/lib/db/server";
 import { formatMoney } from "@/lib/deals/money";
+import type { DealState } from "@/lib/state-machine/states";
 
 const SCENARIO_COPY = [
   "The evidence passes, tracking is attached, and the money releases after receipt or the deadline.",
   "The guide says 0.4 kg. That is too light for the product, so shipping is blocked.",
-  "The buyer's unboxing photo conflicts with the sealed parcel. A mediator decides.",
+  "The buyer disputes the delivery. The AI compares both sides' photos, they contradict each other, so a mediator decides.",
 ];
 
 const STEPS = [
@@ -80,37 +85,9 @@ export default function Home() {
             </h2>
             <span className="text-[0.8125rem] text-ink-muted">3 seeded deals</span>
           </div>
-          <ul className="mt-4 divide-y divide-rule-line border-y border-rule-line">
-            {DEMO_DEALS.map((deal, index) => (
-              <li key={deal.id}>
-                <a
-                  href={`/t/${deal.id}`}
-                  className="group flex items-start gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-postal-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono text-[0.875rem] tabular-nums text-ink-muted">
-                        {formatMoney(deal.priceCents)}
-                      </span>
-                      <StateStamp state={deal.state} />
-                    </div>
-                    <p className="mt-1 text-[0.9375rem] font-medium text-ink">
-                      {deal.title}
-                    </p>
-                    <p className="mt-1 max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted">
-                      {SCENARIO_COPY[index]}
-                    </p>
-                  </div>
-                  <ArrowUpRight
-                    aria-hidden="true"
-                    size={20}
-                    strokeWidth={1.75}
-                    className="mt-1 shrink-0 text-ink-muted transition-transform duration-150 ease-out-quart group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-postal-ink"
-                  />
-                </a>
-              </li>
-            ))}
-          </ul>
+          <Suspense fallback={<DemoDealList />}>
+            <LiveDemoDealList />
+          </Suspense>
           <div className="mt-4 flex justify-end">
             <ButtonLink href="/mediator" variant="ghost" size="sm">
               Open the mediator queue
@@ -151,4 +128,55 @@ export default function Home() {
       </main>
     </div>
   );
+}
+
+// Falls back to the seeded states when the database is unavailable.
+function DemoDealList({ states }: { states?: Map<string, DealState> }) {
+  return (
+    <ul className="mt-4 divide-y divide-rule-line border-y border-rule-line">
+      {DEMO_DEALS.map((deal, index) => (
+        <li key={deal.id}>
+          <a
+            href={`/t/${deal.id}`}
+            className="group flex items-start gap-4 py-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-postal-ink focus-visible:ring-offset-2 focus-visible:ring-offset-paper"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-[0.875rem] tabular-nums text-ink-muted">
+                  {formatMoney(deal.priceCents)}
+                </span>
+                <StateStamp state={states?.get(deal.id) ?? deal.state} />
+              </div>
+              <p className="mt-1 text-[0.9375rem] font-medium text-ink">
+                {deal.title}
+              </p>
+              <p className="mt-1 max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted">
+                {SCENARIO_COPY[index]}
+              </p>
+            </div>
+            <ArrowUpRight
+              aria-hidden="true"
+              size={20}
+              strokeWidth={1.75}
+              className="mt-1 shrink-0 text-ink-muted transition-transform duration-150 ease-out-quart group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-postal-ink"
+            />
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+async function LiveDemoDealList() {
+  if (!isSupabaseConfigured()) return <DemoDealList />;
+  await connection();
+
+  let states: Map<string, DealState> | undefined;
+  try {
+    states = await getDealStates(DEMO_DEALS.map((deal) => deal.id));
+  } catch (error) {
+    console.error("Could not load the demo deal states", error);
+  }
+
+  return <DemoDealList states={states} />;
 }
