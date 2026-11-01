@@ -2,9 +2,7 @@ import "server-only";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import type { LanguageModel } from "ai";
 
-// Picks the model provider from the environment. Nothing outside this file
-// knows which vendor runs the audit: switching providers is an env change, and
-// adding a vendor with its own SDK is one more entry in PROVIDERS.
+// Switching vendors is an env change; a vendor with its own SDK is a new PROVIDERS entry.
 
 export type ModelProviderConfig = {
   provider: string;
@@ -24,8 +22,7 @@ export type ResolvedModel = {
 type ProviderFactory = (config: ModelProviderConfig) => LanguageModel;
 
 const PROVIDERS: Record<string, ProviderFactory> = {
-  // Any endpoint that speaks the OpenAI Chat Completions API: OpenAI itself,
-  // OpenRouter, Groq, Together, DeepInfra, Mistral, a local Ollama or vLLM, ...
+  // Any OpenAI Chat Completions endpoint (OpenAI, OpenRouter, Groq, Ollama, vLLM, ...).
   "openai-compatible": (config) => {
     if (!config.baseURL) {
       throw new Error("AI_BASE_URL is not set");

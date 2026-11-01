@@ -47,12 +47,28 @@ shipping** instead of a release: the deal moves to `SHIPPED` through
    (USD, from 1.00) and a delivery estimate (up to 14 days). Deals above
    500 USD always get a mediator's review before shipping (`HIGH_VALUE`).
 3. Submitting writes the deal through `create_deal` (state `AWAITING_PAYMENT`
-   plus the first `events` row) and takes you to the Trust Link at
-   `/t/<deal id>`.
+   plus the first `events` row) and takes you to the seller page at
+   `/seller/<deal id>`, which links the Trust Link at `/t/<deal id>`.
 
 The Trust Link reads the real deal once Supabase is configured, including
 evidence photos (private bucket, short-lived signed URLs) and the latest
 evidence audit. Without Supabase it renders the seeded demo deals.
+
+## Seller evidence and AI audit
+
+Once the deal is `FUNDS_HELD` (or `EVIDENCE_REJECTED`), `/seller/<deal id>`
+asks for photos A, B and C. The browser reads each photo's EXIF, resizes it to
+1536 px and posts the three to `/api/evidence/<deal id>`. The route sniffs the
+real image type, hashes each file (SHA-256), stores it in the private
+`evidence` bucket and calls `submit_evidence`, which records the photos, opens
+a `PENDING` audit and moves the deal to `AUDITING` in one transaction. It
+answers right away; the model call runs in `after()`.
+
+The audit result decides the next state: `SHIPPED` (tracking read from the
+guide, auto-release deadline set), `EVIDENCE_REJECTED`, or `ESCALATED` when a
+rule fires or the model fails. The seller page and the Trust Link refresh every
+few seconds while the audit runs. `/api/cron/retry-audits` (every five minutes
+in `vercel.json`, same `CRON_SECRET`) reruns audits whose background run died.
 
 ## Buyer checkout
 

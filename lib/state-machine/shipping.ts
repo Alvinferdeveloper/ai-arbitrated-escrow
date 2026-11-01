@@ -5,10 +5,7 @@ import {
   type TransitionRecord,
 } from "./transition";
 
-// Moving a deal to SHIPPED also opens the dispute window: the tracking from the
-// guide is stored and the auto-release deadline is set in the same database
-// transaction as the state change. It still goes through transition(), so the
-// guards in assertTransitionAllowed() apply.
+// SHIPPED stores the tracking and the auto-release deadline atomically with the state change.
 
 export type Shipment = {
   carrier: string | null;
@@ -16,11 +13,7 @@ export type Shipment = {
 };
 
 export interface ShippingStore {
-  /**
-   * Atomically moves the deal to SHIPPED, stores the shipment, sets
-   * shipped_at and auto_release_at, and appends the events row. Throws
-   * TransitionConflictError when the stored state is no longer `from`.
-   */
+  /** Throws TransitionConflictError when the stored state is no longer `from`. */
   ship(record: TransitionRecord, shipment: Shipment): Promise<TransitionEvent>;
 }
 

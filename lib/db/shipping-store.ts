@@ -13,9 +13,6 @@ import {
   type TransitionRpcRow,
 } from "./transition-store";
 
-// Supabase side of shipDeal(). The ship_deal RPC stores the shipment and the
-// auto-release deadline in the same transaction as the state change.
-
 export class SupabaseShippingStore implements ShippingStore {
   async ship(record: TransitionRecord, shipment: Shipment): Promise<TransitionEvent> {
     const { data, error } = await getSupabaseAdmin()

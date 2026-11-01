@@ -49,6 +49,7 @@ function actorFor(from: DealState, to: DealState): Actor {
   if (to === "RELEASED" || to === "REFUNDED") return "paypal";
   if (from === "AWAITING_PAYMENT" && to === "FUNDS_HELD") return "paypal";
   if (to === "SHIPPED") return from === "AUDITING" ? "ai" : "mediator";
+  if (to === "AUDITING") return "seller";
   return "system";
 }
 

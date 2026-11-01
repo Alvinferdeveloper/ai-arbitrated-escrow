@@ -8,10 +8,7 @@ export const ESCALATION_RULES = {
   requiredGuideFields: ["carrier", "trackingNumber", "weightKg", "date"] as const,
   /** Audit time budget before it counts as a technical failure. */
   auditTimeoutMs: 60_000,
-  /**
-   * Deals above this amount always get a person's review before shipping.
-   * A photo of a sealed box is weak proof for an expensive item.
-   */
+  /** Deals above this always get a person's review before shipping. */
   highValueReviewAboveCents: 50_000,
   /** Audits stuck in PENDING or RUNNING longer than this are retried by cron. */
   stuckAuditAfterMs: 3 * 60_000,

@@ -10,8 +10,7 @@ import {
 // release/refund. Release and refund are settlement requests, not transitions:
 // the deal stays ESCALATED until PayPal's webhook confirms the money moved.
 // The pending payment row is written before any PayPal call, so a retry can
-// reuse the same idempotency key. Approving shipping is a transition too, and
-// only exists for cases escalated before the parcel left.
+// reuse the same idempotency key. Approving shipping only applies before the parcel left.
 
 export const MEDIATOR_ACTIONS = [
   "RELEASE",

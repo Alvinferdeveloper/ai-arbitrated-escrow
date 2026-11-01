@@ -80,7 +80,6 @@ export function evaluateEvidenceRules(
     triggeredRules.push("WEIGHT_OUT_OF_RANGE");
   }
 
-  // Fires on clean evidence too: the amount alone justifies a second look.
   if (isHighValue(context.priceCents)) {
     triggeredRules.push("HIGH_VALUE");
   }

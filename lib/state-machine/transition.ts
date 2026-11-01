@@ -97,8 +97,7 @@ export function assertTransitionAllowed(input: TransitionInput): void {
     );
   }
 
-  // Shipping starts from the audit (the AI passed the evidence) or from a
-  // person who reviewed an escalated case. Nobody else opens the dispute window.
+  // Shipping starts from a passed audit or a mediator's approval.
   if (to === "SHIPPED") {
     const allowedActor = from === "AUDITING" ? "ai" : from === "ESCALATED" ? "mediator" : null;
 
@@ -111,6 +110,17 @@ export function assertTransitionAllowed(input: TransitionInput): void {
         "only a passed audit or a mediator may start shipping",
       );
     }
+  }
+
+  // Only the seller's photos start an audit.
+  if (to === "AUDITING" && actor !== "seller") {
+    throw new GuardedTransitionError(
+      dealId,
+      from,
+      to,
+      actor,
+      "only the seller's evidence may start an audit",
+    );
   }
 
   // Same rule for the incoming capture: the approval route starts the capture,

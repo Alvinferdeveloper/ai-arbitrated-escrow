@@ -18,15 +18,9 @@ import {
 import { resolveModel, type ResolvedModel } from "./provider";
 import { buyerEvidenceSchema, evidenceAuditSchema } from "./schemas";
 
-// The only place that talks to the model. Everything else depends on the
-// VisionModel port, so tests never hit the network. Which vendor answers is
-// decided in provider.ts.
+// The only place that calls the model; everything else depends on the ports.
 
-/**
- * Endpoints without `json_schema` support only get `json_object` mode, which
- * guarantees JSON but not its shape. Spell the shape out in the system prompt;
- * Zod still rejects anything that does not match.
- */
+/** `json_object` mode guarantees JSON, not its shape, so the schema goes in the prompt. */
 function systemWithSchema(
   system: string,
   schema: z.ZodType,

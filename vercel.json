@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/auto-release",
       "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/retry-audits",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

@@ -1,9 +1,5 @@
--- Free deal amounts with a high-value review rule.
---
--- The product no longer caps deals at 100 USD. The amount must be at least
--- 1.00 USD; 100,000.00 USD is a sanity ceiling against typos, not a product
--- rule (lib/config.ts holds both). Large deals are reviewed by a person through
--- the HIGH_VALUE escalation rule instead of being refused.
+-- Any deal amount from 1.00 USD; 100,000.00 USD is only a typo guard.
+-- Large deals are reviewed through the HIGH_VALUE escalation rule.
 
 alter table public.deals drop constraint deals_price_cents_check;
 alter table public.deals add constraint deals_price_cents_check

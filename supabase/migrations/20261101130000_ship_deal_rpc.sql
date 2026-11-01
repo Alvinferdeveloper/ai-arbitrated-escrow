@@ -1,14 +1,6 @@
--- Starts shipping for a deal (state SHIPPED).
---
--- Two callers reach this: a passed evidence audit (AUDITING, actor ai) and a
--- mediator who approves a case escalated before the parcel left (ESCALATED,
--- actor mediator). The application checks the transition first; this function
--- makes the database part one transaction: lock the deal, compare the state,
--- store the guide's carrier and tracking number, set shipped_at and the
--- auto-release deadline, move the state and append the events row.
---
--- The deadline is delivery estimate + grace. Demo mode passes a zero day
--- length so the deadline is only the short grace period (lib/config.ts).
+-- Moves a deal to SHIPPED from AUDITING (ai) or ESCALATED (mediator), storing the
+-- tracking and the auto-release deadline in the same transaction.
+-- Demo mode passes p_day_ms = 0, so the deadline is the grace period alone.
 
 create or replace function public.ship_deal(
   p_deal_id uuid,
@@ -67,8 +59,7 @@ begin
             detail = current_state::text;
   end if;
 
-  -- A mediator can only approve shipping before the parcel left. A case that
-  -- came from a dispute is settled with a release or a refund instead.
+  -- A dispute case is settled with a release or refund, never re-shipped.
   if p_from = 'ESCALATED' and (
     current_shipped_at is not null
     or exists (

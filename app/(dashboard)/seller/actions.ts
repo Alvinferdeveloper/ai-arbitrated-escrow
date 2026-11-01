@@ -11,8 +11,8 @@ import {
 import { createDealSchema } from "@/lib/deals/schema";
 
 // Manual deal creation (FR1). The form posts here; the schema at the boundary
-// decides what a valid deal is. On success the seller is taken to the Trust
-// Link so they can share it with the buyer right away.
+// decides what a valid deal is. On success the seller lands on the deal page,
+// which links the Trust Link to share.
 
 export type CreateDealField =
   | "sellerId"
@@ -139,5 +139,5 @@ export async function createDealAction(
     };
   }
 
-  redirect(`/t/${dealId}`);
+  redirect(`/seller/${dealId}`);
 }
