@@ -1,6 +1,6 @@
 import "server-only";
-import { anthropic } from "@ai-sdk/anthropic";
 import { generateText, Output, type UserContent } from "ai";
+import { z } from "zod";
 import type {
   ArbitrationImage,
   ArbitrationInput,
@@ -15,10 +15,30 @@ import {
   buildArbitrationPrompt,
   buildEvidenceAuditPrompt,
 } from "./prompts";
+import { resolveModel, type ResolvedModel } from "./provider";
 import { buyerEvidenceSchema, evidenceAuditSchema } from "./schemas";
 
-// The only place that talks to the model provider. Everything else depends on
-// the VisionModel port, so tests never hit the network.
+// The only place that talks to the model. Everything else depends on the
+// VisionModel port, so tests never hit the network. Which vendor answers is
+// decided in provider.ts.
+
+/**
+ * Endpoints without `json_schema` support only get `json_object` mode, which
+ * guarantees JSON but not its shape. Spell the shape out in the system prompt;
+ * Zod still rejects anything that does not match.
+ */
+function systemWithSchema(
+  system: string,
+  schema: z.ZodType,
+  structuredOutputs: boolean,
+): string {
+  if (structuredOutputs) return system;
+
+  return `${system}
+
+Reply with one JSON object that matches this JSON Schema exactly, with no other text:
+${JSON.stringify(z.toJSONSchema(schema))}`;
+}
 
 function arbitrationImageLabel(
   image: ArbitrationImage,
@@ -29,14 +49,10 @@ function arbitrationImageLabel(
   return `Buyer unboxing photo ${buyerPhotoNumber}:`;
 }
 
-export function createAnthropicVisionModel(
-  modelId = process.env.AI_MODEL,
+export function createVisionModel(
+  resolved: ResolvedModel = resolveModel(),
 ): VisionModel & ArbitrationModel {
-  if (!modelId) {
-    throw new Error("AI_MODEL is not set");
-  }
-
-  const model = anthropic(modelId);
+  const { model, structuredOutputs } = resolved;
 
   return {
     async auditEvidence(
@@ -58,7 +74,11 @@ export function createAnthropicVisionModel(
 
       const { output } = await generateText({
         model,
-        system: EVIDENCE_AUDIT_SYSTEM,
+        system: systemWithSchema(
+          EVIDENCE_AUDIT_SYSTEM,
+          evidenceAuditSchema,
+          structuredOutputs,
+        ),
         messages: [{ role: "user", content }],
         output: Output.object({ schema: evidenceAuditSchema }),
         abortSignal: signal,
@@ -92,7 +112,11 @@ export function createAnthropicVisionModel(
 
       const { output } = await generateText({
         model,
-        system: ARBITRATION_SYSTEM,
+        system: systemWithSchema(
+          ARBITRATION_SYSTEM,
+          buyerEvidenceSchema,
+          structuredOutputs,
+        ),
         messages: [{ role: "user", content }],
         output: Output.object({ schema: buyerEvidenceSchema }),
         abortSignal: signal,

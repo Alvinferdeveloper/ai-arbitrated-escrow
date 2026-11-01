@@ -100,6 +100,27 @@ releases and refunds; the settlement runner calls the payouts or refunds API
 with the same idempotency key PayPal uses, and the deal only leaves the mediator
 when PayPal's webhook confirms the money moved.
 
+## AI model
+
+The evidence audit and the dispute arbitration call one vision model through
+the Vercel AI SDK. The vendor is not fixed: `lib/agents/provider.ts` builds the
+model from the environment, and any endpoint that speaks the OpenAI Chat
+Completions API with image input works (OpenAI, OpenRouter, Groq, Together, a
+local Ollama or vLLM, ...).
+
+```bash
+AI_PROVIDER=openai-compatible        # the only provider wired today
+AI_BASE_URL=https://api.openai.com/v1
+AI_API_KEY=...
+AI_MODEL=...                         # a model id that accepts images
+AI_STRUCTURED_OUTPUTS=true           # false if the endpoint rejects json_schema
+```
+
+With `AI_STRUCTURED_OUTPUTS=false` the request uses `json_object` mode and the
+JSON Schema is written into the system prompt instead. Either way the reply is
+validated with Zod, and an invalid reply escalates the deal to a mediator. To
+add a vendor with its own SDK, add one entry to `PROVIDERS` in `provider.ts`.
+
 ## Test credentials
 
 To be added: sandbox buyer account, demo mode instructions.
