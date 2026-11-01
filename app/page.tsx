@@ -6,6 +6,7 @@ import { HoldingSlip } from "@/components/holding-slip";
 import { StateStamp } from "@/components/state-stamp";
 import { ButtonLink } from "@/components/ui/button";
 import { DEMO_DEALS } from "@/demo/data";
+import { APP_NAME } from "@/lib/config";
 import { getDealStates } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import { formatMoney } from "@/lib/deals/money";
@@ -15,6 +16,17 @@ const SCENARIO_COPY = [
   "The evidence passes, tracking is attached, and the money releases after receipt or the deadline.",
   "The guide says 0.4 kg. That is too light for the product, so shipping is blocked.",
   "The buyer disputes the delivery. The AI compares both sides' photos, they contradict each other, so a mediator decides.",
+];
+
+const FEARS = [
+  {
+    who: "The buyer",
+    fear: "pays first and gets an empty box, a brick, or nothing at all.",
+  },
+  {
+    who: "The seller",
+    fear: "ships first and faces a buyer who swears the parcel arrived empty.",
+  },
 ];
 
 const STEPS = [
@@ -44,7 +56,7 @@ export default function Home() {
       <AppBar right="Sandbox" />
       <main className="mx-auto w-full max-w-[640px] px-4 pb-20 pt-10 md:px-6 md:pt-14">
         <p className="text-[0.8125rem] font-medium text-ink-muted">
-          Escrow for peer-to-peer sales
+          Escrow for sales between strangers online
         </p>
         <h1 className="mt-3 max-w-[18ch] text-[2.5rem] font-semibold leading-[1.05] tracking-[-0.03em] text-ink">
           Money held until the parcel is checked.
@@ -64,7 +76,43 @@ export default function Home() {
           </ButtonLink>
         </div>
 
-        <div className="mt-10 space-y-3">
+        <section aria-labelledby="problem-heading" className="mt-14">
+          <h2
+            id="problem-heading"
+            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+          >
+            The problem
+          </h2>
+          <p className="mt-2 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+            When two strangers trade online, someone has to go first.
+          </p>
+          <dl className="mt-4 grid border-y border-rule-line sm:grid-cols-2 sm:divide-x sm:divide-rule-line">
+            {FEARS.map((item, index) => (
+              <div
+                key={item.who}
+                className={`py-4 sm:px-4 sm:first:pl-0 sm:last:pr-0 ${
+                  index > 0 ? "border-t border-rule-line sm:border-t-0" : ""
+                }`}
+              >
+                <dt className="text-[0.9375rem] font-medium text-ink">{item.who}</dt>
+                <dd className="mt-1 text-[0.9375rem] leading-[1.55] text-ink-muted">
+                  {item.fear}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-4 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
+            Nobody can say who is telling the truth, and reviewing a dispute by hand
+            costs more than the sale. So nobody does, and the honest side loses.
+          </p>
+          <p className="mt-3 max-w-[65ch] text-[1rem] font-medium leading-[1.55] text-ink">
+            {APP_NAME} holds the money and keeps the receipt: photos checked before the
+            parcel ships, compared again if the buyer disputes, and a person for every
+            case the rules cannot settle.
+          </p>
+        </section>
+
+        <div className="mt-14 space-y-3">
           <p className="text-[0.8125rem] font-medium text-ink-muted">
             What the buyer sees
           </p>
