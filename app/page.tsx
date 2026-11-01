@@ -83,8 +83,10 @@ export default function Home() {
           >
             The problem
           </h2>
-          <p className="mt-2 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-            When two strangers trade online, someone has to go first.
+          <p className="mt-2 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
+            Buying from a stranger online still has no safety net. Stores have return
+            policies and buyer protection; a sale between two people over chat has none
+            of that.
           </p>
           <dl className="mt-4 grid border-y border-rule-line sm:grid-cols-2 sm:divide-x sm:divide-rule-line">
             {FEARS.map((item, index) => (
@@ -102,13 +104,14 @@ export default function Home() {
             ))}
           </dl>
           <p className="mt-4 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
-            Nobody can say who is telling the truth, and reviewing a dispute by hand
-            costs more than the sale. So nobody does, and the honest side loses.
+            Nobody checks who is telling the truth, because reviewing a dispute by hand
+            costs more than the sale. So the honest side loses, or people simply
+            don&apos;t buy.
           </p>
-          <p className="mt-3 max-w-[65ch] text-[1rem] font-medium leading-[1.55] text-ink">
-            {APP_NAME} holds the money and keeps the receipt: photos checked before the
-            parcel ships, compared again if the buyer disputes, and a person for every
-            case the rules cannot settle.
+          <p className="mt-3 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
+            <span className="font-medium">{APP_NAME} is the missing safety net:</span> it
+            holds the money, checks the parcel photos before shipping, compares them again
+            if the buyer disputes, and hands every unclear case to a person.
           </p>
         </section>
 
