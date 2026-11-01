@@ -33,12 +33,6 @@ export type CreateDealFormState = {
   fieldErrors: Partial<Record<CreateDealField, string>>;
 };
 
-export const initialCreateDealState: CreateDealFormState = {
-  status: "IDLE",
-  message: null,
-  fieldErrors: {},
-};
-
 const formFieldSchema = z.object({
   sellerId: z.string(),
   buyerId: z.string(),
