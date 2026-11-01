@@ -50,6 +50,19 @@ The Trust Link reads the real deal once Supabase is configured, including
 evidence photos (private bucket, short-lived signed URLs) and the latest
 evidence audit. Without Supabase it renders the seeded demo deals.
 
+## Buyer checkout
+
+On a Trust Link whose deal is `AWAITING_PAYMENT`, the buyer presses **Pay with
+PayPal**. The server creates an Orders v2 order (`CAPTURE`, amount read from the
+deal row), stores its id on the `payments` row, and redirects to PayPal.
+
+After approval PayPal returns to `/api/paypal/capture/<deal id>`. That route
+captures the order and marks the payment `PENDING`; the deal becomes
+`FUNDS_HELD` only when the `PAYMENT.CAPTURE.COMPLETED` webhook arrives. If the
+webhook cannot reach your machine, the Trust Link stays on "waiting for PayPal";
+use a tunnel (ngrok, cloudflared) and point the webhook at
+`https://<tunnel>/api/paypal/webhook`.
+
 ## PayPal setup
 
 Add the sandbox credentials to `.env.local`:
@@ -60,13 +73,15 @@ PAYPAL_CLIENT_ID=...
 PAYPAL_CLIENT_SECRET=...
 PAYPAL_WEBHOOK_ID=...
 NEXT_PUBLIC_PAYPAL_CLIENT_ID=...
+APP_URL=                   # optional; the public origin for return URLs
 ```
 
-`PAYPAL_WEBHOOK_ID` comes from the PayPal webhook subscription that points at
-`/api/paypal/webhook`. The action system can queue releases and refunds; the
-settlement runner calls the payouts or refunds API with the same idempotency
-key PayPal uses, and the deal only leaves the mediator when PayPal's webhook
-confirms the money moved.
+`APP_URL` is optional locally (the app derives the origin from the request) and
+should be set on Vercel. `PAYPAL_WEBHOOK_ID` comes from the PayPal webhook
+subscription that points at `/api/paypal/webhook`. The action system can queue
+releases and refunds; the settlement runner calls the payouts or refunds API
+with the same idempotency key PayPal uses, and the deal only leaves the mediator
+when PayPal's webhook confirms the money moved.
 
 ## Test credentials
 

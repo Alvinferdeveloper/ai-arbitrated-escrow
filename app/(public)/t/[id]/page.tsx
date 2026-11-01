@@ -4,6 +4,7 @@ import { AlertCircle } from "lucide-react";
 import { connection } from "next/server";
 import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
+import { StartCheckoutForm } from "@/components/buyer/start-checkout-form";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
 import { Button } from "@/components/ui/button";
@@ -12,16 +13,21 @@ import { formatDeadline } from "@/lib/deals/deadline";
 import { formatMoney } from "@/lib/deals/money";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
+import { getCapturePayment } from "@/lib/db/checkout-store";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
+import { isPayPalConfigured } from "@/lib/paypal/config";
 
-export default function TrustLinkPage({ params }: PageProps<"/t/[id]">) {
+export default function TrustLinkPage({
+  params,
+  searchParams,
+}: PageProps<"/t/[id]">) {
   return (
     <div className="min-h-[100dvh] bg-paper">
       <AppBar right="Buyer view" />
       <main className="mx-auto w-full max-w-[640px] px-4 pb-20 pt-6 md:px-6">
         <Suspense fallback={<TrustLinkSkeleton />}>
-          <TrustLinkContent params={params} />
+          <TrustLinkContent params={params} searchParams={searchParams} />
         </Suspense>
       </main>
     </div>
@@ -30,18 +36,24 @@ export default function TrustLinkPage({ params }: PageProps<"/t/[id]">) {
 
 async function TrustLinkContent({
   params,
-}: Pick<PageProps<"/t/[id]">, "params">) {
+  searchParams,
+}: Pick<PageProps<"/t/[id]">, "params" | "searchParams">) {
   await connection();
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
 
   if (!dealIdSchema.safeParse(id).success) notFound();
 
   let deal: DealView | null = null;
+  let captureStatus: string | null = null;
   let loadFailed = false;
 
   if (isSupabaseConfigured()) {
     try {
       deal = await getTrustLinkDeal(id);
+
+      if (deal?.state === "AWAITING_PAYMENT") {
+        captureStatus = (await getCapturePayment(id))?.status ?? null;
+      }
     } catch (error) {
       console.error("Could not load the Trust Link deal", error);
       loadFailed = true;
@@ -57,6 +69,16 @@ async function TrustLinkContent({
   const deadline = deal.autoReleaseAt ? formatDeadline(deal.autoReleaseAt) : undefined;
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
 
+  const paymentResult =
+    typeof query.payment === "string" ? query.payment : undefined;
+  const paymentInProgress =
+    captureStatus === "APPROVED" ||
+    captureStatus === "PENDING" ||
+    captureStatus === "COMPLETED";
+  const notice =
+    paymentResult ??
+    (paymentInProgress ? "processing" : undefined);
+
   return (
     <div className="space-y-8">
       <HoldingSlip
@@ -64,6 +86,8 @@ async function TrustLinkContent({
         state={deal.state}
         deadline={deadline}
       />
+
+      <PaymentNotice status={notice} />
 
       <section aria-labelledby="deal-title" className="space-y-3">
         <p className="text-[0.8125rem] font-medium text-ink-muted">Trust Link</p>
@@ -90,7 +114,11 @@ async function TrustLinkContent({
         </p>
       </section>
 
-      <BuyerAction deal={deal} />
+      <BuyerAction
+        deal={deal}
+        checkoutEnabled={isSupabaseConfigured() && isPayPalConfigured()}
+        paymentInProgress={paymentInProgress}
+      />
 
       <section aria-labelledby="evidence-heading" className="space-y-4">
         <div className="flex items-baseline justify-between gap-4">
@@ -135,7 +163,92 @@ async function TrustLinkContent({
   );
 }
 
-function BuyerAction({ deal }: { deal: DealView }) {
+function PaymentNotice({ status }: { status: string | undefined }) {
+  if (!status) return null;
+
+  const copy: Record<
+    string,
+    { title: string; body: string; tone: "info" | "error" }
+  > = {
+    approved: {
+      title: "PayPal approved the payment",
+      body: "PayPal accepted the payment and we are waiting for its confirmation. The deal moves to funds held only after that confirmation arrives; nothing is released or paid out yet.",
+      tone: "info",
+    },
+    processing: {
+      title: "Waiting for PayPal",
+      body: "PayPal has the payment and is still processing it. This page updates when the confirmation arrives; do not pay again.",
+      tone: "info",
+    },
+    cancelled: {
+      title: "Checkout cancelled",
+      body: "You closed PayPal before approving the payment. Nothing moved.",
+      tone: "info",
+    },
+    failed: {
+      title: "The payment did not go through",
+      body: "PayPal refused the capture. Nothing moved; you can try again.",
+      tone: "error",
+    },
+    "not-configured": {
+      title: "Payments are not configured here",
+      body: "This environment has no PayPal sandbox credentials. Nothing can be charged.",
+      tone: "error",
+    },
+    error: {
+      title: "PayPal did not confirm a payment",
+      body: "We could not capture the order. Nothing moved; try again or ask the seller for the Trust Link.",
+      tone: "error",
+    },
+  };
+
+  const entry = copy[status];
+  if (!entry) return null;
+
+  const error = entry.tone === "error";
+
+  return (
+    <section
+      role={error ? "alert" : "status"}
+      className={
+        error
+          ? "flex items-start gap-2 rounded-lg border border-blocked bg-blocked-wash p-4 text-blocked"
+          : "space-y-1 rounded-lg border border-rule-line bg-kraft p-4"
+      }
+    >
+      {error ? (
+        <AlertCircle
+          aria-hidden="true"
+          size={16}
+          strokeWidth={1.75}
+          className="mt-0.5 shrink-0"
+        />
+      ) : null}
+      <div className="space-y-1">
+        <h2 className="text-[0.9375rem] font-semibold leading-[1.35]">
+          {entry.title}
+        </h2>
+        <p
+          className={`max-w-[65ch] text-[0.875rem] leading-[1.55] ${
+            error ? "" : "text-ink"
+          }`}
+        >
+          {entry.body}
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function BuyerAction({
+  deal,
+  checkoutEnabled,
+  paymentInProgress,
+}: {
+  deal: DealView;
+  checkoutEnabled: boolean;
+  paymentInProgress: boolean;
+}) {
   if (deal.state === "AWAITING_PAYMENT") {
     return (
       <section aria-labelledby="buyer-action-heading" className="space-y-3">
@@ -145,14 +258,23 @@ function BuyerAction({ deal }: { deal: DealView }) {
         >
           The buyer&apos;s next step
         </h2>
-        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
-          {deal.seller.displayName} is waiting for the payment of{" "}
-          <span className="font-mono tabular-nums">
-            {formatMoney(deal.priceCents)}
-          </span>
-          . This demo build does not process the payment yet; the checkout goal
-          is to show the deal and its evidence before the money moves.
-        </p>
+        {paymentInProgress ? (
+          <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
+            {deal.seller.displayName} will see the funds as held after PayPal
+            confirms the capture. Reload this page in a moment.
+          </p>
+        ) : checkoutEnabled ? (
+          <StartCheckoutForm dealId={deal.id} amountCents={deal.priceCents} />
+        ) : (
+          <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+            {deal.seller.displayName} is waiting for the payment of{" "}
+            <span className="font-mono tabular-nums">
+              {formatMoney(deal.priceCents)}
+            </span>
+            . Paying with PayPal needs Supabase and sandbox credentials in this
+            environment; this preview cannot charge anything.
+          </p>
+        )}
       </section>
     );
   }
