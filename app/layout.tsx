@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: APP_NAME,
-  description: "Escrow and AI evidence arbitration for small peer-to-peer sales.",
+  description: "Escrow and AI evidence arbitration for peer-to-peer sales.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

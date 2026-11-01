@@ -8,6 +8,7 @@ import { AuditReport } from "@/components/audit-report";
 import { AuditWatcher } from "@/components/audit-watcher";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
+import { RoleSwitcher } from "@/components/role-switcher";
 import { EvidenceUploadForm } from "@/components/seller/evidence-upload-form";
 import { getDemoDeal } from "@/demo/data";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
@@ -56,6 +57,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
 
   return (
     <div className="mt-4 space-y-8">
+      <RoleSwitcher dealId={deal.id} state={deal.state} active="seller" />
       <HoldingSlip
         amountCents={deal.priceCents}
         state={deal.state}

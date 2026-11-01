@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertCircle } from "lucide-react";
 import { connection } from "next/server";
@@ -10,6 +9,7 @@ import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
 import { StartCheckoutForm } from "@/components/buyer/start-checkout-form";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
+import { RoleSwitcher } from "@/components/role-switcher";
 import { getDemoDeal } from "@/demo/data";
 import { formatDeadline } from "@/lib/deals/deadline";
 import { formatMoney } from "@/lib/deals/money";
@@ -83,6 +83,7 @@ async function TrustLinkContent({
 
   return (
     <div className="space-y-8">
+      <RoleSwitcher dealId={deal.id} state={deal.state} active="buyer" />
       <HoldingSlip
         amountCents={deal.priceCents}
         state={deal.state}
@@ -159,14 +160,8 @@ async function TrustLinkContent({
         </section>
       )}
 
-      <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">
-        <span>Sandbox demo. No real money moves.</span>
-        <Link
-          href={`/seller/${deal.id}`}
-          className="inline-flex h-11 items-center rounded-sm font-medium text-postal-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-postal-ink"
-        >
-          Switch to the seller view
-        </Link>
+      <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">
+        Sandbox demo. No real money moves.
       </footer>
     </div>
   );

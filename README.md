@@ -40,6 +40,12 @@ shipping** instead of a release: the deal moves to `SHIPPED` through
 - `PRODUCT.md`: product rules, requirements and priorities
 - `DESIGN.md`: design system
 
+## Demo navigation
+
+There is no sign-in. `/deals` lists every deal in the sandbox, and each deal
+screen has a **View as** switcher (Buyer, Seller, Mediator) so one person can
+walk all sides of the same deal.
+
 ## Create a deal
 
 1. Open `/seller`.

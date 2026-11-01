@@ -57,6 +57,10 @@ export type AuditReportView = {
   triggeredRules: string[];
 };
 
+export type DealSummary = Pick<Deal, "id" | "title" | "priceCents" | "state" | "seller" | "buyer"> & {
+  updatedAt: Date;
+};
+
 export type DealView = Deal & {
   evidence: EvidenceView[];
   audit: AuditReportView | null;

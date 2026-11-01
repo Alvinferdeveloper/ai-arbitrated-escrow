@@ -7,6 +7,7 @@ import type {
   AuditReportView,
   Deal,
   DealParty,
+  DealSummary,
   DealView,
   EvidenceSlot,
   EvidenceView,
@@ -199,6 +200,47 @@ function uploadedEvidence(
     uploadedAt: new Date(row.created_at),
     imageUrl,
   };
+}
+
+type DealSummaryRow = {
+  id: string;
+  title: string;
+  price_cents: number;
+  state: DealState;
+  updated_at: string;
+  seller: { id: string; display_name: string } | null;
+  buyer: { id: string; display_name: string } | null;
+};
+
+function summaryParty(
+  user: DealSummaryRow["seller"],
+  fallback: string,
+): DealParty {
+  return { id: user?.id ?? fallback, displayName: user?.display_name ?? "Unknown user" };
+}
+
+/** Most recently changed deals first. */
+export async function listDeals(limit = 50): Promise<DealSummary[]> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("deals")
+    .select(
+      "id, title, price_cents, state, updated_at, seller:users!deals_seller_id_fkey(id, display_name), buyer:users!deals_buyer_id_fkey(id, display_name)",
+    )
+    .order("updated_at", { ascending: false })
+    .limit(limit)
+    .returns<DealSummaryRow[]>();
+
+  if (error) fail("Could not load the deals", error.message);
+
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    title: row.title,
+    priceCents: row.price_cents,
+    state: row.state,
+    seller: summaryParty(row.seller, ""),
+    buyer: summaryParty(row.buyer, ""),
+    updatedAt: new Date(row.updated_at),
+  }));
 }
 
 /**

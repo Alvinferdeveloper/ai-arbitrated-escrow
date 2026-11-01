@@ -12,6 +12,7 @@ import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
 import { CaseTimeline } from "@/components/mediation/case-timeline";
 import { MediatorActions } from "@/components/mediation/mediator-actions";
+import { RoleSwitcher } from "@/components/role-switcher";
 import { ESCALATION_RULE_LABELS } from "@/lib/agents/rules.config";
 import { formatCaseAge } from "@/lib/mediation/age";
 import { getMediationCaseById } from "@/lib/mediation/repository";
@@ -34,6 +35,8 @@ export default async function MediatorCasePage({
         <ArrowLeft aria-hidden="true" size={16} strokeWidth={1.75} />
         Back to queue
       </Link>
+
+      <RoleSwitcher dealId={caseFile.id} state={caseFile.state} active="mediator" />
 
       <HoldingSlip
         amountCents={caseFile.priceCents}
