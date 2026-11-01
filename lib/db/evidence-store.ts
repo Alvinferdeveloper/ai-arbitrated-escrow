@@ -64,12 +64,15 @@ export async function getDealState(dealId: string): Promise<DealState | null> {
   return data?.state ?? null;
 }
 
-export async function getLatestEvidenceAudit(dealId: string): Promise<LatestAudit | null> {
+export async function getLatestEvidenceAudit(
+  dealId: string,
+  kind: AuditKind = "EVIDENCE_AUDIT",
+): Promise<LatestAudit | null> {
   const { data, error } = await getSupabaseAdmin()
     .from("ai_audits")
     .select("id, status, created_at")
     .eq("deal_id", dealId)
-    .eq("kind", "EVIDENCE_AUDIT")
+    .eq("kind", kind)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle<{ id: string; status: AuditStatus; created_at: string }>();
@@ -126,7 +129,7 @@ type AuditSubjectDealRow = {
   price_cents: number;
 };
 
-async function downloadPhoto(path: string): Promise<Uint8Array> {
+export async function downloadEvidencePhoto(path: string): Promise<Uint8Array> {
   const { data, error } = await getSupabaseAdmin().storage.from(BUCKET).download(path);
   if (error || !data) {
     throw new Error(`Could not read ${path}: ${error?.message ?? "empty file"}`);
@@ -134,22 +137,27 @@ async function downloadPhoto(path: string): Promise<Uint8Array> {
   return new Uint8Array(await data.arrayBuffer());
 }
 
+/** Marks a PENDING audit (or one whose run died) RUNNING. Null when another run owns it. */
+export async function claimAuditRun(auditId: string): Promise<{ dealId: string } | null> {
+  const staleBefore = new Date(Date.now() - ESCALATION_RULES.stuckAuditAfterMs).toISOString();
+
+  const { data, error } = await getSupabaseAdmin()
+    .from("ai_audits")
+    .update({ status: "RUNNING", started_at: new Date().toISOString() })
+    .eq("id", auditId)
+    .or(`status.eq.PENDING,and(status.eq.RUNNING,started_at.lt.${staleBefore})`)
+    .select("deal_id")
+    .maybeSingle<{ deal_id: string }>();
+
+  if (error) throw new Error(`Could not claim the audit: ${error.message}`);
+  return data ? { dealId: data.deal_id } : null;
+}
+
 export class SupabaseEvidenceAuditJobStore implements EvidenceAuditJobStore {
-  async claimAudit(auditId: string): Promise<{ dealId: string } | null> {
-    // A RUNNING row past the threshold belongs to a run that died.
-    const staleBefore = new Date(Date.now() - ESCALATION_RULES.stuckAuditAfterMs).toISOString();
-
-    const { data, error } = await getSupabaseAdmin()
-      .from("ai_audits")
-      .update({ status: "RUNNING", started_at: new Date().toISOString() })
-      .eq("id", auditId)
-      .or(`status.eq.PENDING,and(status.eq.RUNNING,started_at.lt.${staleBefore})`)
-      .select("deal_id")
-      .maybeSingle<{ deal_id: string }>();
-
-    if (error) throw new Error(`Could not claim the audit: ${error.message}`);
-    return data ? { dealId: data.deal_id } : null;
+  claimAudit(auditId: string): Promise<{ dealId: string } | null> {
+    return claimAuditRun(auditId);
   }
+
 
   async loadAuditSubject(dealId: string): Promise<AuditSubject | null> {
     const admin = getSupabaseAdmin();
@@ -179,7 +187,7 @@ export class SupabaseEvidenceAuditJobStore implements EvidenceAuditJobStore {
       (files ?? []).map(async (file) => ({
         slot: file.type,
         mediaType: file.mime_type,
-        data: await downloadPhoto(file.storage_path),
+        data: await downloadEvidencePhoto(file.storage_path),
       })),
     );
 
@@ -216,10 +224,12 @@ export class SupabaseEvidenceAuditJobStore implements EvidenceAuditJobStore {
   }
 }
 
+export type AuditKind = "EVIDENCE_AUDIT" | "ARBITRATION";
+
 export type AuditToResume = {
   id: string;
   dealId: string;
-  status: AuditStatus;
+  kind: AuditKind;
 };
 
 /** Audits whose run died. */
@@ -228,17 +238,16 @@ export async function listStuckAudits(limit: number): Promise<AuditToResume[]> {
 
   const { data, error } = await getSupabaseAdmin()
     .from("ai_audits")
-    .select("id, deal_id, status")
-    .eq("kind", "EVIDENCE_AUDIT")
+    .select("id, deal_id, kind")
     .or(
       `and(status.eq.PENDING,created_at.lt.${staleBefore}),and(status.eq.RUNNING,started_at.lt.${staleBefore})`,
     )
     .order("created_at", { ascending: true })
     .limit(limit)
-    .returns<{ id: string; deal_id: string; status: AuditStatus }[]>();
+    .returns<{ id: string; deal_id: string; kind: AuditKind }[]>();
 
   if (error) throw new Error(`Could not list stuck audits: ${error.message}`);
-  return (data ?? []).map((row) => ({ id: row.id, dealId: row.deal_id, status: row.status }));
+  return (data ?? []).map((row) => ({ id: row.id, dealId: row.deal_id, kind: row.kind }));
 }
 
 export type FinishedAuditRow = {

@@ -1,18 +1,35 @@
 import {
+  runStoredArbitration,
+  settleFinishedArbitration,
+} from "@/lib/agents/arbitration-runner";
+import {
   runStoredEvidenceAudit,
   settleFinishedAudit,
 } from "@/lib/agents/evidence-audit-runner";
+import { listFinishedArbitrationsAwaitingDecision } from "@/lib/db/dispute-store";
 import {
   listFinishedAuditsAwaitingDecision,
   listStuckAudits,
 } from "@/lib/db/evidence-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 
-// Reruns audits whose background run died and applies decisions that never landed.
+// Reruns audits and arbitrations whose background run died, and applies
+// decisions that never landed.
 
 export const maxDuration = 120;
 
 const BATCH_SIZE = 3;
+
+type Result = { auditId: string; outcome: string };
+
+async function attempt(auditId: string, work: () => Promise<string>): Promise<Result> {
+  try {
+    return { auditId, outcome: await work() };
+  } catch (error) {
+    console.error("Audit retry failed", auditId, error);
+    return { auditId, outcome: "FAILED" };
+  }
+}
 
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET?.trim();
@@ -29,33 +46,36 @@ export async function GET(request: Request) {
     return Response.json({ ok: false, error: "supabase_not_configured" }, { status: 503 });
   }
 
-  const results: { auditId: string; outcome: string }[] = [];
-  let failed = 0;
+  const results: Result[] = [];
 
   for (const audit of await listStuckAudits(BATCH_SIZE)) {
-    try {
-      const result = await runStoredEvidenceAudit(audit.id);
-      results.push({
-        auditId: audit.id,
-        outcome: result.status === "DONE" ? result.outcome : result.reason,
-      });
-    } catch (error) {
-      failed += 1;
-      console.error("Stuck audit retry failed", audit.id, error);
-      results.push({ auditId: audit.id, outcome: "FAILED" });
-    }
+    results.push(
+      await attempt(audit.id, async () => {
+        const result =
+          audit.kind === "ARBITRATION"
+            ? await runStoredArbitration(audit.id)
+            : await runStoredEvidenceAudit(audit.id);
+        return result.status === "DONE" ? result.outcome : result.reason;
+      }),
+    );
   }
 
   for (const audit of await listFinishedAuditsAwaitingDecision(BATCH_SIZE)) {
-    try {
-      const applied = await settleFinishedAudit(audit);
-      results.push({ auditId: audit.id, outcome: applied ? "DECISION_APPLIED" : "SUPERSEDED" });
-    } catch (error) {
-      failed += 1;
-      console.error("Applying a finished audit failed", audit.id, error);
-      results.push({ auditId: audit.id, outcome: "FAILED" });
-    }
+    results.push(
+      await attempt(audit.id, async () =>
+        (await settleFinishedAudit(audit)) ? "DECISION_APPLIED" : "SUPERSEDED",
+      ),
+    );
   }
 
+  for (const arbitration of await listFinishedArbitrationsAwaitingDecision(BATCH_SIZE)) {
+    results.push(
+      await attempt(arbitration.id, async () =>
+        (await settleFinishedArbitration(arbitration)) ? "DECISION_APPLIED" : "SUPERSEDED",
+      ),
+    );
+  }
+
+  const failed = results.filter((result) => result.outcome === "FAILED").length;
   return Response.json({ ok: failed === 0, failed, results });
 }

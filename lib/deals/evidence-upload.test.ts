@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  disputeReasonSchema,
   evidenceUploadMetadataSchema,
   extensionFor,
   sniffImageType,
+  unboxingUploadMetadataSchema,
 } from "./evidence-upload";
 
 const photo = { width: 1536, height: 1152, exif: { Make: "Pixel", hasGps: false } };
@@ -51,5 +53,12 @@ describe("evidence upload boundary", () => {
     expect(
       evidenceUploadMetadataSchema.safeParse({ A: huge, B: photo, C: photo }).success,
     ).toBe(false);
+  });
+
+  it("accepts exactly one unboxing photo and a non-empty reason", () => {
+    expect(unboxingUploadMetadataSchema.safeParse({ D: photo }).success).toBe(true);
+    expect(unboxingUploadMetadataSchema.safeParse({ D: photo, A: photo }).success).toBe(false);
+    expect(disputeReasonSchema.safeParse("  ").success).toBe(false);
+    expect(disputeReasonSchema.safeParse("The box was empty.").success).toBe(true);
   });
 });

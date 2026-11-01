@@ -97,6 +97,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
           <AuditRunning />
         </>
       ) : null}
+      {deal.state === "ARBITRATING" ? <AuditWatcher /> : null}
 
       {!canUpload && sellerEvidence.some((item) => item.status === "uploaded") ? (
         <section aria-labelledby="evidence-heading" className="space-y-4">
@@ -136,6 +137,14 @@ function SellerNextStep({ deal }: { deal: DealView }) {
     SHIPPED: {
       title: "Send the parcel",
       body: `The evidence passed. The money is released when ${deal.buyer.displayName} confirms receipt or the deadline passes.`,
+    },
+    DISPUTED: {
+      title: "The buyer opened a dispute",
+      body: `${deal.buyer.displayName} reported a problem with the parcel. The money stays held while their unboxing photo is compared with your evidence.`,
+    },
+    ARBITRATING: {
+      title: "Comparing both sides",
+      body: "The buyer's unboxing photo is being compared with your evidence. If they disagree, a person decides.",
     },
     ESCALATED: {
       title: "With a mediator",

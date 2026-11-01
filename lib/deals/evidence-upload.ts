@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { EVIDENCE_PHOTO_SLOTS, type EvidencePhotoSlot } from "@/lib/agents/ports";
+import { EVIDENCE_PHOTO_SLOTS } from "@/lib/agents/ports";
+import type { EvidenceSlot } from "./types";
 
 export type EvidenceMediaType = "image/jpeg" | "image/png" | "image/webp";
 
@@ -19,7 +20,7 @@ export const exifSummarySchema = z
     message: `Keep the EXIF summary under ${EXIF_MAX_KEYS} fields`,
   });
 
-const photoMetadataSchema = z.strictObject({
+export const photoMetadataSchema = z.strictObject({
   width: z.number().int().min(1).max(10_000),
   height: z.number().int().min(1).max(10_000),
   exif: exifSummarySchema,
@@ -32,8 +33,17 @@ export const evidenceUploadMetadataSchema = z.strictObject({
 });
 
 export type EvidenceUploadMetadata = z.infer<typeof evidenceUploadMetadataSchema>;
+export type PhotoMetadata = z.infer<typeof photoMetadataSchema>;
 
-export function photoFieldName(slot: EvidencePhotoSlot): string {
+export const unboxingUploadMetadataSchema = z.strictObject({ D: photoMetadataSchema });
+
+export const disputeReasonSchema = z
+  .string()
+  .trim()
+  .min(1, "Say what is wrong with the parcel")
+  .max(2000, "Keep the reason under 2000 characters");
+
+export function photoFieldName(slot: EvidenceSlot): string {
   return `photo${slot}`;
 }
 

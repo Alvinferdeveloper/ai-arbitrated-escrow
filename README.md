@@ -91,6 +91,24 @@ public/demo-evidence/different-product/{A,B,C}.jpg  A shows another product than
 
 The listing they match is `SAMPLE_LISTING` in `demo/sample-evidence.ts`.
 
+## Disputes
+
+On a `SHIPPED` deal the buyer can open **Something is wrong with the parcel**
+before the auto-release deadline (not after a confirmed receipt). They write
+what is wrong and send photo D, the opened parcel. `/api/disputes/<deal id>`
+opens the dispute (`DISPUTED`), stores the photo and moves the deal to
+`ARBITRATING` with a `PENDING` arbitration. In `after()` the model compares
+photo D with the seller's photos and audit, and the rules decide:
+
+- the buyer's photo matches the seller's evidence: payout to the seller;
+- both sides agree the item is wrong: refund to the buyer;
+- the evidence contradicts itself or is unclear: `ESCALATED` to a mediator.
+
+A release or refund only queues the payment row; the deal leaves
+`ARBITRATING` when PayPal's webhook confirms the money moved. A mediator who
+asks the buyer for more evidence sends the deal back to `DISPUTED`, where the
+buyer can send a new photo D.
+
 ## Buyer checkout
 
 On a Trust Link whose deal is `AWAITING_PAYMENT`, the buyer presses **Pay with

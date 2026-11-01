@@ -1,7 +1,5 @@
-import { createHash } from "node:crypto";
 import { after } from "next/server";
 import { runStoredEvidenceAudit } from "@/lib/agents/evidence-audit-runner";
-import { EVIDENCE_MAX_BYTES } from "@/lib/config";
 import {
   getDealState,
   removeEvidencePhotos,
@@ -10,17 +8,18 @@ import {
 } from "@/lib/db/evidence-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import {
+  isEvidenceFileError,
+  readEvidenceFile,
+  type PreparedEvidenceFile,
+} from "@/lib/deals/evidence-file";
+import {
   EVIDENCE_UPLOAD_SLOTS,
   evidenceUploadMetadataSchema,
-  extensionFor,
-  photoFieldName,
-  sniffImageType,
 } from "@/lib/deals/evidence-upload";
 import { dealIdSchema } from "@/lib/deals/schema";
 import {
   IncompleteEvidenceError,
   submitSellerEvidence,
-  type EvidenceItem,
 } from "@/lib/state-machine/evidence-submission";
 import {
   DealNotFoundError,
@@ -76,36 +75,12 @@ export async function POST(
     return fail(409, "not_waiting_for_evidence", "This deal is not waiting for photos.");
   }
 
-  const prepared: { item: EvidenceItem; bytes: Uint8Array }[] = [];
+  const prepared: PreparedEvidenceFile[] = [];
 
   for (const slot of EVIDENCE_UPLOAD_SLOTS) {
-    const file = form.get(photoFieldName(slot));
-    if (!(file instanceof File) || file.size === 0) {
-      return fail(400, "missing_photo", `Photo ${slot} is missing.`);
-    }
-    if (file.size > EVIDENCE_MAX_BYTES) {
-      return fail(413, "photo_too_large", `Photo ${slot} is larger than 10 MB.`);
-    }
-
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const mediaType = sniffImageType(bytes);
-    if (!mediaType) {
-      return fail(415, "unsupported_photo", `Photo ${slot} must be a JPEG, PNG or WebP image.`);
-    }
-
-    prepared.push({
-      bytes,
-      item: {
-        slot,
-        mediaType,
-        storagePath: `${dealId}/${slot}-${Date.now()}.${extensionFor(mediaType)}`,
-        sha256: createHash("sha256").update(bytes).digest("hex"),
-        sizeBytes: bytes.byteLength,
-        width: metadata.data[slot].width,
-        height: metadata.data[slot].height,
-        exif: metadata.data[slot].exif,
-      },
-    });
+    const file = await readEvidenceFile(form, dealId, slot, metadata.data[slot]);
+    if (isEvidenceFileError(file)) return fail(file.status, file.error, file.message);
+    prepared.push(file);
   }
 
   const stored: string[] = [];

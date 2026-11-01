@@ -6,6 +6,7 @@ import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
 import { AuditWatcher } from "@/components/audit-watcher";
 import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
+import { DisputeForm } from "@/components/buyer/dispute-form";
 import { StartCheckoutForm } from "@/components/buyer/start-checkout-form";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
@@ -17,6 +18,7 @@ import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
 import { getCapturePayment } from "@/lib/db/checkout-store";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
+import { getDealSettlement } from "@/lib/db/dispute-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import { isPayPalConfigured } from "@/lib/paypal/config";
 
@@ -47,6 +49,7 @@ async function TrustLinkContent({
 
   let deal: DealView | null = null;
   let captureStatus: string | null = null;
+  let settlement: Settlement = null;
   let loadFailed = false;
 
   if (isSupabaseConfigured()) {
@@ -55,6 +58,9 @@ async function TrustLinkContent({
 
       if (deal?.state === "AWAITING_PAYMENT") {
         captureStatus = (await getCapturePayment(id))?.status ?? null;
+      }
+      if (deal?.state === "ARBITRATING") {
+        settlement = await getDealSettlement(id);
       }
     } catch (error) {
       console.error("Could not load the Trust Link deal", error);
@@ -70,6 +76,7 @@ async function TrustLinkContent({
 
   const deadline = deal.autoReleaseAt ? formatDeadline(deal.autoReleaseAt) : undefined;
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
+  const unboxing = deal.evidence.find((item) => item.slot === "D" && item.status === "uploaded");
 
   const paymentResult =
     typeof query.payment === "string" ? query.payment : undefined;
@@ -91,7 +98,7 @@ async function TrustLinkContent({
       />
 
       <PaymentNotice status={notice} />
-      {deal.state === "AUDITING" ? <AuditWatcher /> : null}
+      {deal.state === "AUDITING" || deal.state === "ARBITRATING" ? <AuditWatcher /> : null}
 
       <section aria-labelledby="deal-title" className="space-y-3">
         <p className="text-[0.8125rem] font-medium text-ink-muted">Trust Link</p>
@@ -122,7 +129,22 @@ async function TrustLinkContent({
         checkoutEnabled={isSupabaseConfigured() && isPayPalConfigured()}
         releaseEnabled={isSupabaseConfigured()}
         paymentInProgress={paymentInProgress}
+        settlement={settlement}
       />
+
+      {unboxing ? (
+        <section aria-labelledby="unboxing-heading" className="space-y-4">
+          <h2
+            id="unboxing-heading"
+            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+          >
+            Your unboxing photo
+          </h2>
+          <div className="max-w-sm">
+            <EvidenceSlot evidence={unboxing} />
+          </div>
+        </section>
+      ) : null}
 
       <section aria-labelledby="evidence-heading" className="space-y-4">
         <div className="flex items-baseline justify-between gap-4">
@@ -244,16 +266,20 @@ function PaymentNotice({ status }: { status: string | undefined }) {
   );
 }
 
+type Settlement = Awaited<ReturnType<typeof getDealSettlement>>;
+
 function BuyerAction({
   deal,
   checkoutEnabled,
   releaseEnabled,
   paymentInProgress,
+  settlement,
 }: {
   deal: DealView;
   checkoutEnabled: boolean;
   releaseEnabled: boolean;
   paymentInProgress: boolean;
+  settlement: Settlement;
 }) {
   if (deal.state === "AWAITING_PAYMENT") {
     return (
@@ -306,6 +332,54 @@ function BuyerAction({
           If the deadline passes first, the payout is sent automatically to{" "}
           {deal.seller.displayName}.
         </p>
+        {releaseEnabled ? (
+          <details className="group rounded-lg border border-rule-line bg-sheet">
+            <summary className="flex min-h-11 cursor-pointer items-center px-4 text-[0.9375rem] font-medium text-ink marker:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-postal-ink">
+              Something is wrong with the parcel
+            </summary>
+            <div className="border-t border-rule-line p-4">
+              <DisputeForm dealId={deal.id} askReason />
+            </div>
+          </details>
+        ) : null}
+      </section>
+    );
+  }
+
+  if (deal.state === "DISPUTED") {
+    return (
+      <section aria-labelledby="buyer-action-heading" className="space-y-3">
+        <h2
+          id="buyer-action-heading"
+          className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+        >
+          Add your unboxing photo
+        </h2>
+        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+          Show the opened parcel and what came out of it. The money stays held.
+        </p>
+        {releaseEnabled ? <DisputeForm dealId={deal.id} askReason={false} /> : null}
+      </section>
+    );
+  }
+
+  if (deal.state === "ARBITRATING") {
+    const amount = formatMoney(deal.priceCents);
+    const body = !settlement
+      ? `We are comparing your photo with ${deal.seller.displayName}'s evidence. If they disagree, a person decides. This page updates by itself.`
+      : settlement.purpose === "REFUND"
+        ? `Your dispute was upheld. The refund of ${amount} is with PayPal and lands once PayPal confirms it.`
+        : `Your photo matches the seller's evidence, so the dispute was not upheld. The payout of ${amount} to ${deal.seller.displayName} is with PayPal.`;
+
+    return (
+      <section aria-labelledby="buyer-action-heading" className="space-y-2">
+        <h2
+          id="buyer-action-heading"
+          className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+        >
+          {settlement ? "Dispute decided" : "Reviewing your dispute"}
+        </h2>
+        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">{body}</p>
       </section>
     );
   }

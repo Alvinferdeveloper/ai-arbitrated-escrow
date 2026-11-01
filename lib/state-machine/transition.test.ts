@@ -50,6 +50,8 @@ function actorFor(from: DealState, to: DealState): Actor {
   if (from === "AWAITING_PAYMENT" && to === "FUNDS_HELD") return "paypal";
   if (to === "SHIPPED") return from === "AUDITING" ? "ai" : "mediator";
   if (to === "AUDITING") return "seller";
+  if (to === "DISPUTED") return from === "SHIPPED" ? "buyer" : "mediator";
+  if (to === "ARBITRATING") return "buyer";
   return "system";
 }
 
@@ -136,6 +138,22 @@ describe("transition()", () => {
       const store = new InMemoryStore({ deal: from });
       await transition({ dealId: "deal", from, to: "SHIPPED", actor: allowed }, store);
       expect(store.stateOf("deal")).toBe("SHIPPED");
+    }
+  });
+
+  it("lets only the buyer dispute and start an arbitration", async () => {
+    for (const [from, to, allowed] of [
+      ["SHIPPED", "DISPUTED", "buyer"],
+      ["ESCALATED", "DISPUTED", "mediator"],
+      ["DISPUTED", "ARBITRATING", "buyer"],
+    ] as const) {
+      for (const actor of ["buyer", "seller", "mediator", "ai", "system", "paypal"] as const) {
+        if (actor === allowed) continue;
+        const store = new InMemoryStore({ deal: from });
+        await expect(
+          transition({ dealId: "deal", from, to, actor }, store),
+        ).rejects.toBeInstanceOf(GuardedTransitionError);
+      }
     }
   });
 

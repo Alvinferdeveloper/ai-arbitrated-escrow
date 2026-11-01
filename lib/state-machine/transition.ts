@@ -112,6 +112,24 @@ export function assertTransitionAllowed(input: TransitionInput): void {
     }
   }
 
+  // The buyer disputes a shipped deal; a mediator reopens it for more evidence.
+  if (to === "DISPUTED") {
+    const allowedActor = from === "SHIPPED" ? "buyer" : "mediator";
+    if (actor !== allowedActor) {
+      throw new GuardedTransitionError(dealId, from, to, actor, "not allowed to open this dispute");
+    }
+  }
+
+  if (to === "ARBITRATING" && actor !== "buyer") {
+    throw new GuardedTransitionError(
+      dealId,
+      from,
+      to,
+      actor,
+      "only the buyer's unboxing photo may start an arbitration",
+    );
+  }
+
   // Only the seller's photos start an audit.
   if (to === "AUDITING" && actor !== "seller") {
     throw new GuardedTransitionError(

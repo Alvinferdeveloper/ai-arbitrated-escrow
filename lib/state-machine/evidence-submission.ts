@@ -1,6 +1,6 @@
-import type { EvidencePhotoSlot } from "@/lib/agents/ports";
 import { EVIDENCE_PHOTO_SLOTS } from "@/lib/agents/ports";
 import type { EvidenceMediaType } from "@/lib/deals/evidence-upload";
+import type { EvidenceSlot } from "@/lib/deals/types";
 import {
   transition,
   type TransitionEvent,
@@ -10,7 +10,7 @@ import {
 // Stores photos A, B and C, opens a PENDING audit and moves the deal to AUDITING atomically.
 
 export type EvidenceItem = {
-  slot: EvidencePhotoSlot;
+  slot: EvidenceSlot;
   storagePath: string;
   sha256: string;
   mediaType: EvidenceMediaType;

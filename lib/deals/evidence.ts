@@ -20,6 +20,6 @@ export const EVIDENCE_SLOT_COPY: Record<
   },
   D: {
     title: "Unboxing",
-    description: "The parcel and what came out of it, in one or two photos.",
+    description: "The opened parcel with what came out of it, in one photo.",
   },
 };
