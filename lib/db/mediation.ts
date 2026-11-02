@@ -5,7 +5,7 @@ import {
   type EscalationRuleId,
 } from "@/lib/agents/rules.config";
 import { toAuditReportView } from "@/lib/agents/report";
-import { evidenceAuditSchema } from "@/lib/agents/schemas";
+import { storedEvidenceAuditSchema } from "@/lib/agents/schemas";
 import { EVIDENCE_SLOT_COPY } from "@/lib/deals/evidence";
 import type {
   AuditReportView,
@@ -280,6 +280,8 @@ function eventTitle(event: EventRow): string {
       return "Arbitration started";
     case "ESCALATED":
       return "Escalated to a mediator";
+    case "REFUNDING":
+      return "Cancelled by the AI";
     case "RELEASED":
       return "Payment released";
     case "REFUNDED":
@@ -315,6 +317,8 @@ function eventDetail(event: EventRow): string {
       return "The system is comparing both sides of the dispute.";
     case "ESCALATED":
       return "A rule sent this case to a person.";
+    case "REFUNDING":
+      return "The AI cancelled the deal and sent the refund to PayPal.";
     case "RELEASED":
       return "PayPal confirmed the payout.";
     case "REFUNDED":
@@ -435,7 +439,7 @@ export async function getMediationCase(
     `${reasonLabel} was recorded. ${claim}`;
 
   const parsedAudit = audit?.result
-    ? evidenceAuditSchema.safeParse(audit.result)
+    ? storedEvidenceAuditSchema.safeParse(audit.result)
     : null;
   const auditView: AuditReportView | null =
     parsedAudit?.success === true

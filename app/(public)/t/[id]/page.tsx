@@ -12,7 +12,7 @@ import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
 import { RoleSwitcher } from "@/components/role-switcher";
 import { getDemoDeal } from "@/demo/data";
-import { formatDeadline } from "@/lib/deals/deadline";
+import { holdingSlipDeadline } from "@/lib/deals/deadline";
 import { formatMoney } from "@/lib/deals/money";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
@@ -74,7 +74,7 @@ async function TrustLinkContent({
 
   if (!deal) notFound();
 
-  const deadline = deal.autoReleaseAt ? formatDeadline(deal.autoReleaseAt) : undefined;
+  const deadline = holdingSlipDeadline(deal);
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
   const unboxing = deal.evidence.find((item) => item.slot === "D" && item.status === "uploaded");
 
@@ -391,11 +391,29 @@ function BuyerAction({
           id="buyer-action-heading"
           className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
         >
-          Shipping is blocked
+          The AI asked the seller for new photos
         </h2>
         <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-          {deal.seller.displayName} needs to upload clearer evidence. The money stays
-          held and no tracking is attached until the audit passes.
+          {deal.seller.displayName}&apos;s photos did not pass the audit, so nothing has
+          shipped. If the new photos do not pass before the deadline, you are refunded
+          automatically.
+        </p>
+      </section>
+    );
+  }
+
+  if (deal.state === "REFUNDING") {
+    return (
+      <section aria-labelledby="buyer-action-heading" className="space-y-2">
+        <h2
+          id="buyer-action-heading"
+          className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+        >
+          You are being refunded
+        </h2>
+        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+          {deal.aiDecision?.detail ?? "The AI cancelled the deal."} The refund of{" "}
+          {formatMoney(deal.priceCents)} is with PayPal and lands once PayPal confirms it.
         </p>
       </section>
     );

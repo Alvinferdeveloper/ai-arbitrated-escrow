@@ -1,3 +1,4 @@
+import type { EvidencePhotoSlot } from "./ports";
 import {
   ESCALATION_RULES,
   type EscalationRuleId,
@@ -5,21 +6,21 @@ import {
 import type { EvidenceAudit } from "./schemas";
 
 // Pure rules. The model reports findings; this file decides whether the deal
-// ships, is blocked for a re-upload, or goes to the human mediator.
+// ships, the seller retakes specific photos, or the buyer is refunded.
+// ESCALATE is reserved for technical failures, set by the audit itself.
 
-export const EVIDENCE_OUTCOMES = ["PASS", "BLOCK", "ESCALATE"] as const;
+export const EVIDENCE_OUTCOMES = ["PASS", "RETAKE", "REFUND", "ESCALATE"] as const;
 export type EvidenceOutcome = (typeof EVIDENCE_OUTCOMES)[number];
 
-export const EVIDENCE_ISSUES = [
-  "PACKING_NOT_SHOWN",
-  "PARCEL_NOT_SEALED",
-] as const;
-export type EvidenceIssue = (typeof EVIDENCE_ISSUES)[number];
+export type RetakeRequest = {
+  slot: EvidencePhotoSlot;
+  instruction: string;
+};
 
 export type EvidenceRuleDecision = {
   outcome: EvidenceOutcome;
   triggeredRules: EscalationRuleId[];
-  evidenceIssues: EvidenceIssue[];
+  retakes: RetakeRequest[];
   audit: EvidenceAudit;
 };
 
@@ -46,10 +47,6 @@ export function missingGuideFields(guide: EvidenceAudit["guide"]): string[] {
   return ESCALATION_RULES.requiredGuideFields.filter((field) => guide[field] === null);
 }
 
-export type EvidenceRuleContext = {
-  priceCents: number;
-};
-
 export function isHighValue(
   priceCents: number,
   thresholdCents = ESCALATION_RULES.highValueReviewAboveCents,
@@ -57,39 +54,68 @@ export function isHighValue(
   return priceCents > thresholdCents;
 }
 
+export type EvidenceRuleContext = {
+  priceCents: number;
+};
+
+function addRule(rules: EscalationRuleId[], rule: EscalationRuleId): void {
+  if (!rules.includes(rule)) rules.push(rule);
+}
+
 export function evaluateEvidenceRules(
   audit: EvidenceAudit,
   context: EvidenceRuleContext,
 ): EvidenceRuleDecision {
-  // CONFLICTING_EVIDENCE belongs to arbitration, where buyer and seller photos
-  // can contradict each other. Before shipping there is no second side, so the
-  // model's inconsistency list is shown in the report but does not fire it.
   const triggeredRules: EscalationRuleId[] = [];
 
-  if (!audit.product.matchesListing) {
-    triggeredRules.push("PRODUCT_MISMATCH");
+  // Another kind of product altogether cannot be fixed with a better photo.
+  if (audit.product.differentItem) {
+    return { outcome: "REFUND", triggeredRules: ["PRODUCT_MISMATCH"], retakes: [], audit };
   }
 
-  // A guide that is not visible cannot be read either. Both cases go to a
-  // mediator because the seller's proof is incomplete at the source.
+  const instructions: Record<EvidencePhotoSlot, string[]> = { A: [], B: [], C: [] };
+
+  if (!audit.product.matchesListing) {
+    addRule(triggeredRules, "PRODUCT_MISMATCH");
+    instructions.A.push("show the exact product from the listing, so its model, color and condition can be compared");
+  }
+
+  if (isHighValue(context.priceCents) && !audit.product.identifierVisible) {
+    addRule(triggeredRules, "HIGH_VALUE");
+    instructions.A.push("make the serial number or model label legible, as this deal is high value");
+  }
+
+  if (!audit.packing.productInside) {
+    instructions.B.push("show the product inside the open box");
+  }
+
+  if (!audit.parcel.sealed) {
+    instructions.C.push("show the parcel closed and sealed with tape");
+  }
+
   if (!audit.parcel.guideVisible || missingGuideFields(audit.guide).length > 0) {
-    triggeredRules.push("UNREADABLE_GUIDE");
+    addRule(triggeredRules, "UNREADABLE_GUIDE");
+    instructions.C.push("make the carrier, tracking number, weight and date on the guide fully legible");
   }
 
   if (isWeightOutOfRange(audit.guide.weightKg, audit.product.expectedWeightKg)) {
-    triggeredRules.push("WEIGHT_OUT_OF_RANGE");
+    addRule(triggeredRules, "WEIGHT_OUT_OF_RANGE");
+    instructions.C.push(
+      `the guide weight does not fit this product (about ${audit.product.expectedWeightKg} kg packed); weigh the parcel again and show the corrected guide`,
+    );
   }
 
-  if (isHighValue(context.priceCents)) {
-    triggeredRules.push("HIGH_VALUE");
-  }
+  const retakes: RetakeRequest[] = (Object.keys(instructions) as EvidencePhotoSlot[])
+    .filter((slot) => instructions[slot].length > 0)
+    .map((slot) => ({
+      slot,
+      instruction: `Retake photo ${slot}: ${instructions[slot].join("; ")}.`,
+    }));
 
-  const evidenceIssues: EvidenceIssue[] = [];
-  if (!audit.packing.productInside) evidenceIssues.push("PACKING_NOT_SHOWN");
-  if (!audit.parcel.sealed) evidenceIssues.push("PARCEL_NOT_SEALED");
-
-  const outcome: EvidenceOutcome =
-    triggeredRules.length > 0 ? "ESCALATE" : evidenceIssues.length > 0 ? "BLOCK" : "PASS";
-
-  return { outcome, triggeredRules, evidenceIssues, audit };
+  return {
+    outcome: retakes.length > 0 ? "RETAKE" : "PASS",
+    triggeredRules,
+    retakes,
+    audit,
+  };
 }

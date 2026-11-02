@@ -5,6 +5,8 @@ import type { EvidenceAudit } from "./schemas";
 const honestAudit: EvidenceAudit = {
   product: {
     matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
     expectedWeightKg: 1.4,
     reason: "The black headphones match the listing.",
   },

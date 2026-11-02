@@ -1,5 +1,5 @@
 import "server-only";
-import { evidenceAuditSchema } from "@/lib/agents/schemas";
+import { storedEvidenceAuditSchema } from "@/lib/agents/schemas";
 import { AUTO_RELEASE_GRACE_MS, DELIVERY_DAY_MS } from "@/lib/config";
 import type { Shipment, ShippingStore } from "@/lib/state-machine/shipping";
 import type {
@@ -51,7 +51,7 @@ export async function loadAuditedShipment(dealId: string): Promise<Shipment> {
     throw new Error(`Could not load the audited shipment: ${error.message}`);
   }
 
-  const parsed = evidenceAuditSchema.safeParse(data?.result);
+  const parsed = storedEvidenceAuditSchema.safeParse(data?.result);
   if (!parsed.success) return { carrier: null, trackingNumber: null };
 
   return {

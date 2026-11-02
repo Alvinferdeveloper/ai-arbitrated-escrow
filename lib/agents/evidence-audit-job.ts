@@ -39,7 +39,7 @@ function technicalFailure(message: string): EvidenceAuditDecision {
   return {
     outcome: "ESCALATE",
     triggeredRules: ["TECHNICAL_FAILURE"],
-    evidenceIssues: [],
+    retakes: [],
     audit: null,
     technicalError: message,
   };

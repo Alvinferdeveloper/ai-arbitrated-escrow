@@ -40,7 +40,7 @@ export const STATE_PRESENTATION: Record<DealState, StatePresentation> = {
     icon: "lock",
     nextActor: "seller",
     nextAction:
-      "Waiting for the seller to upload photos A, B and C. The money stays held until the evidence passes.",
+      "Waiting for the seller to upload photos A, B and C. Without valid evidence before the deadline, the buyer is refunded.",
   },
   AUDITING: {
     label: "Checking evidence",
@@ -56,7 +56,7 @@ export const STATE_PRESENTATION: Record<DealState, StatePresentation> = {
     icon: "shield-x",
     nextActor: "seller",
     nextAction:
-      "The seller needs to upload clearer evidence. No money moves until it passes.",
+      "The AI asked the seller to retake specific photos. If they do not pass before the deadline, the buyer is refunded.",
   },
   SHIPPED: {
     label: "Shipped",
@@ -88,6 +88,14 @@ export const STATE_PRESENTATION: Record<DealState, StatePresentation> = {
     icon: "gavel",
     nextActor: "mediator",
     nextAction: "A mediator is reviewing the case. The money stays held.",
+  },
+  REFUNDING: {
+    label: "Refunding buyer",
+    tone: "blocked",
+    icon: "refund",
+    nextActor: "system",
+    nextAction:
+      "The AI cancelled the deal before shipping. PayPal is returning the money to the buyer.",
   },
   RELEASED: {
     label: "Released to seller",

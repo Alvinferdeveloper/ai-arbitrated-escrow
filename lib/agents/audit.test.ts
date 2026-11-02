@@ -6,6 +6,8 @@ import type { EvidenceAudit } from "./schemas";
 const honestAudit: EvidenceAudit = {
   product: {
     matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
     expectedWeightKg: 1.4,
     reason: "The black headphones match the listing.",
   },
@@ -124,5 +126,21 @@ describe("auditEvidence", () => {
 
     expect(decision.triggeredRules).toEqual(["TECHNICAL_FAILURE"]);
     expect(audit).not.toHaveBeenCalled();
+  });
+
+  it("retries once after a model error before giving up", async () => {
+    let calls = 0;
+    const flaky: VisionModel = {
+      auditEvidence: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error("upstream 503");
+        return honestAudit;
+      },
+    };
+
+    const decision = await auditEvidence({ model: flaky, input, images });
+
+    expect(calls).toBe(2);
+    expect(decision.outcome).toBe("PASS");
   });
 });

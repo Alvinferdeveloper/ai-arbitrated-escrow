@@ -61,7 +61,22 @@ export type DealSummary = Pick<Deal, "id" | "title" | "priceCents" | "state" | "
   updatedAt: Date;
 };
 
+export type RetakeView = {
+  slot: "A" | "B" | "C";
+  instruction: string;
+};
+
+/** What the AI decided last, read from the event that moved the deal. */
+export type AiDecisionView = {
+  retakes: RetakeView[];
+  attemptsLeft: number | null;
+  detail: string | null;
+};
+
 export type DealView = Deal & {
   evidence: EvidenceView[];
   audit: AuditReportView | null;
+  /** Set while the seller owes valid evidence; the buyer is refunded after it. */
+  evidenceDueAt: Date | null;
+  aiDecision: AiDecisionView | null;
 };

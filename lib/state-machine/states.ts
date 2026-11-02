@@ -11,6 +11,7 @@ export const DEAL_STATES = [
   "DISPUTED", // buyer opened a dispute, waiting for unboxing evidence
   "ARBITRATING", // engine comparing seller and buyer evidence
   "ESCALATED", // with the human mediator
+  "REFUNDING", // the AI cancelled before shipping, refund sent to PayPal
   "RELEASED", // payout confirmed by webhook (final)
   "REFUNDED", // refund confirmed by webhook (final)
 ] as const;
@@ -24,15 +25,18 @@ export const FINAL_STATES: readonly DealState[] = ["RELEASED", "REFUNDED"];
 /** Allowed transitions. Anything not listed here is rejected. */
 export const TRANSITIONS: Record<DealState, readonly DealState[]> = {
   AWAITING_PAYMENT: ["FUNDS_HELD"],
-  FUNDS_HELD: ["AUDITING", "ESCALATED"],
-  AUDITING: ["SHIPPED", "EVIDENCE_REJECTED", "ESCALATED"],
-  EVIDENCE_REJECTED: ["AUDITING", "ESCALATED"],
+  // REFUNDING: the AI refunds on a different item, exhausted attempts or a missed deadline.
+  FUNDS_HELD: ["AUDITING", "ESCALATED", "REFUNDING"],
+  AUDITING: ["SHIPPED", "EVIDENCE_REJECTED", "ESCALATED", "REFUNDING"],
+  EVIDENCE_REJECTED: ["AUDITING", "ESCALATED", "REFUNDING"],
   SHIPPED: ["DISPUTED", "RELEASED", "ESCALATED"],
   DISPUTED: ["ARBITRATING", "ESCALATED"],
   ARBITRATING: ["RELEASED", "REFUNDED", "ESCALATED"],
   // Mediator: release, refund, request more evidence (back to seller or buyer),
   // or approve shipping for a case escalated before the parcel left.
   ESCALATED: ["RELEASED", "REFUNDED", "FUNDS_HELD", "DISPUTED", "SHIPPED"],
+  // A failed refund or a reversal goes to a person.
+  REFUNDING: ["REFUNDED", "ESCALATED"],
   RELEASED: [],
   REFUNDED: [],
 };

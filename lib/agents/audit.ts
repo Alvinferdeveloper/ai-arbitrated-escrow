@@ -4,19 +4,19 @@ import {
   type EvidenceImage,
   type VisionModel,
 } from "./ports";
-import { evaluateEvidenceRules, type EvidenceIssue, type EvidenceOutcome } from "./rules";
+import { evaluateEvidenceRules, type EvidenceOutcome, type RetakeRequest } from "./rules";
 import { ESCALATION_RULES, type EscalationRuleId } from "./rules.config";
 import { evidenceAuditSchema, type EvidenceAudit } from "./schemas";
 import { withTimeout } from "./timeout";
 
 // Orchestrates one audit: call the model, validate its output, then apply the
-// explicit rules. Any error, timeout or invalid object becomes a technical
-// failure, which sends the deal to a mediator and never releases money.
+// explicit rules. An error, timeout or invalid object is retried; if it keeps
+// failing it becomes a technical failure, which never moves money.
 
 export type EvidenceAuditDecision = {
   outcome: EvidenceOutcome;
   triggeredRules: EscalationRuleId[];
-  evidenceIssues: EvidenceIssue[];
+  retakes: RetakeRequest[];
   audit: EvidenceAudit | null;
   technicalError?: string;
 };
@@ -32,7 +32,7 @@ function technicalFailure(message: string): EvidenceAuditDecision {
   return {
     outcome: "ESCALATE",
     triggeredRules: ["TECHNICAL_FAILURE"],
-    evidenceIssues: [],
+    retakes: [],
     audit: null,
     technicalError: message,
   };
@@ -54,21 +54,24 @@ export async function auditEvidence({
     return technicalFailure("Photos A, B and C are required");
   }
 
-  try {
-    const raw = await withTimeout(
-      (signal) => model.auditEvidence(input, images, signal),
-      timeoutMs,
-    );
+  let lastError = "The evidence audit failed";
 
-    const parsed = evidenceAuditSchema.safeParse(raw);
-    if (!parsed.success) {
-      return technicalFailure("The model returned invalid evidence data");
+  for (let attempt = 0; attempt <= ESCALATION_RULES.technicalRetries; attempt += 1) {
+    try {
+      const raw = await withTimeout(
+        (signal) => model.auditEvidence(input, images, signal),
+        timeoutMs,
+      );
+
+      const parsed = evidenceAuditSchema.safeParse(raw);
+      if (parsed.success) {
+        return evaluateEvidenceRules(parsed.data, { priceCents: input.priceCents });
+      }
+      lastError = "The model returned invalid evidence data";
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "The evidence audit failed";
     }
-
-    return evaluateEvidenceRules(parsed.data, { priceCents: input.priceCents });
-  } catch (error) {
-    return technicalFailure(
-      error instanceof Error ? error.message : "The evidence audit failed",
-    );
   }
+
+  return technicalFailure(lastError);
 }

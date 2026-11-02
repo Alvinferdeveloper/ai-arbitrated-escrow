@@ -3,7 +3,7 @@ import type { ArbitrationDecision } from "@/lib/agents/arbitration";
 import type { ArbitrationJobStore, ArbitrationSubject } from "@/lib/agents/arbitration-job";
 import type { ArbitrationImage, ArbitrationImageRole } from "@/lib/agents/ports";
 import { ARBITRATION_PROMPT_VERSION } from "@/lib/agents/prompts";
-import { evidenceAuditSchema } from "@/lib/agents/schemas";
+import { storedEvidenceAuditSchema } from "@/lib/agents/schemas";
 import type { EvidenceMediaType } from "@/lib/deals/evidence-upload";
 import type { EvidenceSlot } from "@/lib/deals/types";
 import type {
@@ -170,7 +170,7 @@ export async function loadSellerAudit(dealId: string) {
     .maybeSingle<{ result: unknown }>();
 
   if (error) throw new Error(`Could not load the seller audit: ${error.message}`);
-  const parsed = evidenceAuditSchema.safeParse(data?.result);
+  const parsed = storedEvidenceAuditSchema.safeParse(data?.result);
   return parsed.success ? parsed.data : null;
 }
 

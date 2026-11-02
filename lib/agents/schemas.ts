@@ -6,10 +6,15 @@ import { z } from "zod";
 const reasonSchema = z.string().trim().min(1).max(500);
 const guideFieldSchema = z.string().trim().min(1).max(80).nullable();
 
-export const evidenceAuditSchema = z.strictObject({
+export const evidenceAuditSchema = z
+  .strictObject({
   product: z.strictObject({
     /** Photo A: is the item the same product, model and condition as the listing? */
     matchesListing: z.boolean(),
+    /** Photo A shows another kind of product altogether, not a variant of the listed one. */
+    differentItem: z.boolean(),
+    /** A serial number or model label on the product is legible in photo A. */
+    identifierVisible: z.boolean(),
     /** Typical shipping weight of the listed product with packaging, in kg. */
     expectedWeightKg: z.number().positive().finite().max(100),
     reason: reasonSchema,
@@ -37,9 +42,24 @@ export const evidenceAuditSchema = z.strictObject({
   }),
   /** Material contradictions only. Cosmetic notes do not belong here. */
   inconsistencies: z.array(reasonSchema).max(10),
-});
+  })
+  .refine((audit) => !(audit.product.differentItem && audit.product.matchesListing), {
+    path: ["product", "differentItem"],
+    message: "A different item cannot match the listing",
+  });
 
 export type EvidenceAudit = z.infer<typeof evidenceAuditSchema>;
+
+/** Audits stored before differentItem and identifierVisible existed read as false. */
+export const storedEvidenceAuditSchema = z.preprocess((value) => {
+  if (!value || typeof value !== "object" || !("product" in value)) return value;
+  const audit = value as { product?: unknown };
+  if (!audit.product || typeof audit.product !== "object") return value;
+  return {
+    ...audit,
+    product: { differentItem: false, identifierVisible: false, ...audit.product },
+  };
+}, evidenceAuditSchema);
 
 export const BUYER_ITEM_CONDITIONS = [
   "AS_DESCRIBED",

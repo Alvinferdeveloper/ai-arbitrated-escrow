@@ -1,9 +1,12 @@
 import "server-only";
 import { toAuditReportView } from "@/lib/agents/report";
-import { evidenceAuditSchema } from "@/lib/agents/schemas";
+import { z } from "zod";
+import { storedEvidenceAuditSchema } from "@/lib/agents/schemas";
+import { EVIDENCE_DEADLINE_MS } from "@/lib/config";
 import { EVIDENCE_SLOT_COPY } from "@/lib/deals/evidence";
 import { usdToCents } from "@/lib/deals/money";
 import type {
+  AiDecisionView,
   AuditReportView,
   Deal,
   DealParty,
@@ -139,7 +142,23 @@ type DealRow = {
   carrier: string | null;
   tracking_number: string | null;
   created_at: string;
+  updated_at: string;
 };
+
+const aiDecisionPayloadSchema = z.object({
+  retakes: z
+    .array(z.object({ slot: z.enum(["A", "B", "C"]), instruction: z.string() }))
+    .default([]),
+  attemptsLeft: z.number().int().nullable().default(null),
+  detail: z.string().nullable().default(null),
+});
+
+function toAiDecision(payload: unknown): AiDecisionView | null {
+  const parsed = aiDecisionPayloadSchema.safeParse(payload ?? {});
+  return parsed.success ? parsed.data : null;
+}
+
+const WAITING_FOR_EVIDENCE: readonly DealState[] = ["FUNDS_HELD", "EVIDENCE_REJECTED"];
 
 type EvidenceRow = {
   id: string;
@@ -267,7 +286,7 @@ export async function getTrustLinkDeal(
   const { data: deal, error: dealError } = await admin
     .from("deals")
     .select(
-      "id, seller_id, buyer_id, title, description, price_cents, state, delivery_estimate_days, auto_release_at, carrier, tracking_number, created_at",
+      "id, seller_id, buyer_id, title, description, price_cents, state, delivery_estimate_days, auto_release_at, carrier, tracking_number, created_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle<DealRow>();
@@ -279,6 +298,7 @@ export async function getTrustLinkDeal(
     { data: evidenceRows, error: evidenceError },
     { data: audit, error: auditError },
     { data: users, error: usersError },
+    { data: latestEvent, error: eventError },
   ] = await Promise.all([
     admin
       .from("evidence")
@@ -301,14 +321,23 @@ export async function getTrustLinkDeal(
       .select("id, display_name")
       .in("id", [deal.seller_id, deal.buyer_id])
       .returns<UserOptionRow[]>(),
+    admin
+      .from("events")
+      .select("payload")
+      .eq("deal_id", deal.id)
+      .eq("to_state", deal.state)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ payload: unknown }>(),
   ]);
 
   if (evidenceError) fail("Could not load the deal evidence", evidenceError.message);
   if (auditError) fail("Could not load the deal audit", auditError.message);
   if (usersError) fail("Could not load the deal users", usersError.message);
+  if (eventError) fail("Could not load the deal history", eventError.message);
 
   const parsedAudit = audit?.result
-    ? evidenceAuditSchema.safeParse(audit.result)
+    ? storedEvidenceAuditSchema.safeParse(audit.result)
     : null;
   const auditView: AuditReportView | null =
     parsedAudit?.success === true
@@ -349,5 +378,15 @@ export async function getTrustLinkDeal(
     createdAt: new Date(deal.created_at),
   };
 
-  return { ...dealBase, evidence: evidenceViews, audit: auditView };
+  const evidenceDueAt = WAITING_FOR_EVIDENCE.includes(deal.state)
+    ? new Date(new Date(deal.updated_at).getTime() + EVIDENCE_DEADLINE_MS)
+    : null;
+
+  return {
+    ...dealBase,
+    evidence: evidenceViews,
+    audit: auditView,
+    evidenceDueAt,
+    aiDecision: latestEvent ? toAiDecision(latestEvent.payload) : null,
+  };
 }

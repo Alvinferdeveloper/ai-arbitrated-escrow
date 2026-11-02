@@ -10,25 +10,16 @@ import type { EvidenceAudit } from "./schemas";
 
 const ORDINARY_PRICE_CENTS = 3750;
 
-function evaluateEvidenceRules(audit: EvidenceAudit) {
-  return evaluateWithContext(audit, { priceCents: ORDINARY_PRICE_CENTS });
-}
-
 const honestAudit: EvidenceAudit = {
   product: {
     matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
     expectedWeightKg: 1.4,
     reason: "The black headphones match the listing.",
   },
-  packing: {
-    productInside: true,
-    reason: "The headphones are inside the box.",
-  },
-  parcel: {
-    sealed: true,
-    guideVisible: true,
-    reason: "The parcel is sealed and the guide is visible.",
-  },
+  packing: { productInside: true, reason: "The headphones are inside the box." },
+  parcel: { sealed: true, guideVisible: true, reason: "The parcel is sealed and the guide is visible." },
   guide: {
     readable: true,
     carrier: "UPS",
@@ -43,26 +34,39 @@ function withAudit(changes: Partial<EvidenceAudit>): EvidenceAudit {
   return { ...honestAudit, ...changes };
 }
 
+function evaluate(audit: EvidenceAudit) {
+  return evaluateWithContext(audit, { priceCents: ORDINARY_PRICE_CENTS });
+}
+
 describe("evidence rules", () => {
-  it("passes an honest audit with no escalation rule", () => {
-    const decision = evaluateEvidenceRules(honestAudit);
+  it("passes an honest audit", () => {
+    const decision = evaluate(honestAudit);
     expect(decision.outcome).toBe("PASS");
     expect(decision.triggeredRules).toEqual([]);
-    expect(decision.evidenceIssues).toEqual([]);
+    expect(decision.retakes).toEqual([]);
   });
 
-  it("escalates a product mismatch", () => {
-    const decision = evaluateEvidenceRules(
+  it("refunds right away when photo A shows another kind of product", () => {
+    const decision = evaluate(
       withAudit({
-        product: {
-          ...honestAudit.product,
-          matchesListing: false,
-          reason: "The listing shows black headphones; photo A shows white ones.",
-        },
+        product: { ...honestAudit.product, matchesListing: false, differentItem: true },
+        packing: { productInside: false, reason: "Empty box." },
       }),
     );
-    expect(decision.outcome).toBe("ESCALATE");
-    expect(decision.triggeredRules).toContain("PRODUCT_MISMATCH");
+    expect(decision.outcome).toBe("REFUND");
+    expect(decision.triggeredRules).toEqual(["PRODUCT_MISMATCH"]);
+    expect(decision.retakes).toEqual([]);
+  });
+
+  it("asks for a new photo A on a minor mismatch", () => {
+    const decision = evaluate(
+      withAudit({ product: { ...honestAudit.product, matchesListing: false } }),
+    );
+    expect(decision.outcome).toBe("RETAKE");
+    expect(decision.triggeredRules).toEqual(["PRODUCT_MISMATCH"]);
+    expect(decision.retakes).toEqual([
+      expect.objectContaining({ slot: "A", instruction: expect.stringMatching(/^Retake photo A: /) }),
+    ]);
   });
 
   it("compares the guide weight with the expected weight at 25% tolerance", () => {
@@ -74,44 +78,27 @@ describe("evidence rules", () => {
     expect(isWeightOutOfRange(null, 1.4)).toBe(false);
   });
 
-  it("escalates a weight outside the expected range", () => {
-    const decision = evaluateEvidenceRules(
-      withAudit({
-        guide: { ...honestAudit.guide, weightKg: 0.4 },
-        product: { ...honestAudit.product, expectedWeightKg: 1.4 },
-      }),
-    );
-    expect(decision.outcome).toBe("ESCALATE");
-    expect(decision.triggeredRules).toContain("WEIGHT_OUT_OF_RANGE");
+  it("asks for a new guide photo when the weight does not fit", () => {
+    const decision = evaluate(withAudit({ guide: { ...honestAudit.guide, weightKg: 0.4 } }));
+    expect(decision.outcome).toBe("RETAKE");
+    expect(decision.triggeredRules).toEqual(["WEIGHT_OUT_OF_RANGE"]);
+    expect(decision.retakes[0]).toMatchObject({ slot: "C" });
+    expect(decision.retakes[0].instruction).toContain("1.4 kg");
   });
 
-  it("escalates an unreadable guide or a missing required field", () => {
-    const unreadable = evaluateEvidenceRules(
+  it("asks for a legible guide when it is unreadable, incomplete or hidden", () => {
+    for (const audit of [
       withAudit({
-        guide: {
-          readable: false,
-          carrier: null,
-          trackingNumber: null,
-          weightKg: null,
-          date: null,
-        },
+        guide: { readable: false, carrier: null, trackingNumber: null, weightKg: null, date: null },
       }),
-    );
-    expect(unreadable.triggeredRules).toContain("UNREADABLE_GUIDE");
-
-    const missingTracking = evaluateEvidenceRules(
-      withAudit({
-        guide: { ...honestAudit.guide, trackingNumber: null },
-      }),
-    );
-    expect(missingTracking.triggeredRules).toContain("UNREADABLE_GUIDE");
-
-    const guideNotVisible = evaluateEvidenceRules(
-      withAudit({
-        parcel: { ...honestAudit.parcel, guideVisible: false },
-      }),
-    );
-    expect(guideNotVisible.triggeredRules).toContain("UNREADABLE_GUIDE");
+      withAudit({ guide: { ...honestAudit.guide, trackingNumber: null } }),
+      withAudit({ parcel: { ...honestAudit.parcel, guideVisible: false } }),
+    ]) {
+      const decision = evaluate(audit);
+      expect(decision.outcome).toBe("RETAKE");
+      expect(decision.triggeredRules).toContain("UNREADABLE_GUIDE");
+      expect(decision.retakes.map((retake) => retake.slot)).toEqual(["C"]);
+    }
   });
 
   it("lists every missing guide field", () => {
@@ -126,95 +113,53 @@ describe("evidence rules", () => {
     ).toEqual(["carrier", "weightKg"]);
   });
 
-  it("blocks instead of escalating when packing or parcel evidence is missing", () => {
-    const packing = evaluateEvidenceRules(
+  it("asks for packing and seal photos without firing a rule", () => {
+    const decision = evaluate(
       withAudit({
         packing: { productInside: false, reason: "Photo B shows an empty box." },
+        parcel: { ...honestAudit.parcel, sealed: false, reason: "The tape is cut." },
       }),
     );
-    expect(packing.outcome).toBe("BLOCK");
-    expect(packing.triggeredRules).toEqual([]);
-    expect(packing.evidenceIssues).toEqual(["PACKING_NOT_SHOWN"]);
-
-    const parcel = evaluateEvidenceRules(
-      withAudit({
-        parcel: {
-          ...honestAudit.parcel,
-          sealed: false,
-          reason: "The tape is cut in photo C.",
-        },
-      }),
-    );
-    expect(parcel.outcome).toBe("BLOCK");
-    expect(parcel.evidenceIssues).toEqual(["PARCEL_NOT_SEALED"]);
-
-    const both = evaluateEvidenceRules(
-      withAudit({
-        packing: { productInside: false, reason: "Empty box." },
-        parcel: { ...honestAudit.parcel, sealed: false, reason: "Open parcel." },
-      }),
-    );
-    expect(both.outcome).toBe("BLOCK");
-    expect(both.evidenceIssues).toEqual([
-      "PACKING_NOT_SHOWN",
-      "PARCEL_NOT_SEALED",
-    ]);
-  });
-
-  it("lets escalation win over a block and keeps the evidence issues", () => {
-    const decision = evaluateEvidenceRules(
-      withAudit({
-        product: { ...honestAudit.product, matchesListing: false, reason: "Wrong item." },
-        packing: { productInside: false, reason: "Empty box." },
-      }),
-    );
-    expect(decision.outcome).toBe("ESCALATE");
-    expect(decision.evidenceIssues).toEqual(["PACKING_NOT_SHOWN"]);
-  });
-
-  it("does not treat a free-text inconsistency as an escalation on its own", () => {
-    const decision = evaluateEvidenceRules(
-      withAudit({ inconsistencies: ["The box has a small dent."] }),
-    );
-    expect(decision.outcome).toBe("PASS");
+    expect(decision.outcome).toBe("RETAKE");
     expect(decision.triggeredRules).toEqual([]);
+    expect(decision.retakes.map((retake) => retake.slot)).toEqual(["B", "C"]);
   });
 
-  it("reports multiple escalation rules in a stable order", () => {
-    const decision = evaluateEvidenceRules(
+  it("merges several requests for the same photo into one instruction", () => {
+    const decision = evaluate(
       withAudit({
-        product: { ...honestAudit.product, matchesListing: false, reason: "Wrong item." },
+        parcel: { sealed: false, guideVisible: false, reason: "Open parcel, no label." },
         guide: { ...honestAudit.guide, weightKg: 0.4 },
-        parcel: { ...honestAudit.parcel, guideVisible: false },
       }),
     );
-    expect(decision.triggeredRules).toEqual([
-      "PRODUCT_MISMATCH",
-      "UNREADABLE_GUIDE",
-      "WEIGHT_OUT_OF_RANGE",
-    ]);
+    expect(decision.retakes).toHaveLength(1);
+    expect(decision.retakes[0].instruction).toContain("sealed");
+    expect(decision.retakes[0].instruction).toContain("legible");
+    expect(decision.triggeredRules).toEqual(["UNREADABLE_GUIDE", "WEIGHT_OUT_OF_RANGE"]);
   });
 
-  it("sends a high-value deal to a person even when the evidence is clean", () => {
+  it("does not act on a free-text inconsistency on its own", () => {
+    const decision = evaluate(withAudit({ inconsistencies: ["The box has a small dent."] }));
+    expect(decision.outcome).toBe("PASS");
+  });
+
+  it("asks a high-value deal for a legible serial number", () => {
     const threshold = ESCALATION_RULES.highValueReviewAboveCents;
 
     const atThreshold = evaluateWithContext(honestAudit, { priceCents: threshold });
     expect(atThreshold.outcome).toBe("PASS");
-    expect(atThreshold.triggeredRules).toEqual([]);
 
     const above = evaluateWithContext(honestAudit, { priceCents: threshold + 1 });
-    expect(above.outcome).toBe("ESCALATE");
+    expect(above.outcome).toBe("RETAKE");
     expect(above.triggeredRules).toEqual(["HIGH_VALUE"]);
-  });
+    expect(above.retakes[0]).toMatchObject({ slot: "A" });
+    expect(above.retakes[0].instruction).toContain("serial number");
 
-  it("keeps the other rules alongside HIGH_VALUE", () => {
-    const decision = evaluateWithContext(
-      withAudit({
-        product: { ...honestAudit.product, matchesListing: false },
-      }),
-      { priceCents: 250_000 },
+    const withSerial = evaluateWithContext(
+      withAudit({ product: { ...honestAudit.product, identifierVisible: true } }),
+      { priceCents: threshold + 1 },
     );
-    expect(decision.triggeredRules).toEqual(["PRODUCT_MISMATCH", "HIGH_VALUE"]);
+    expect(withSerial.outcome).toBe("PASS");
   });
 
   it("counts only amounts strictly above the threshold as high value", () => {

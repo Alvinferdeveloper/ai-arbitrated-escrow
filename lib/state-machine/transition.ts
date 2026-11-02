@@ -130,6 +130,17 @@ export function assertTransitionAllowed(input: TransitionInput): void {
     );
   }
 
+  // The AI refunds on an audit verdict; the system refunds on a missed deadline.
+  if (to === "REFUNDING" && actor !== "ai" && actor !== "system") {
+    throw new GuardedTransitionError(
+      dealId,
+      from,
+      to,
+      actor,
+      "only the AI or the evidence deadline may cancel a deal",
+    );
+  }
+
   // Only the seller's photos start an audit.
   if (to === "AUDITING" && actor !== "seller") {
     throw new GuardedTransitionError(

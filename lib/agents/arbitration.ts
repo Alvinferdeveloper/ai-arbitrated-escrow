@@ -19,8 +19,8 @@ import { withTimeout } from "./timeout";
 // One dispute comparison: the seller's stored audit plus both sides' photos
 // become a validated buyer audit, then the rules choose release, refund or a
 // mediator. A decision is not a payment: the state machine still has to start
-// the guarded PayPal action, and only its webhook settles the deal. No error
-// anywhere in this path can release money.
+// the guarded PayPal action, and only its webhook settles the deal. Errors are
+// retried once; no error anywhere in this path can release money.
 
 export type ArbitrationDecision = {
   outcome: ArbitrationOutcome;
@@ -78,36 +78,29 @@ export async function arbitrateDispute({
     );
   }
 
-  try {
-    const raw = await withTimeout(
-      (signal) =>
-        model.arbitrateDispute(
-          { ...input, sellerAudit: seller.data },
-          images,
-          signal,
-        ),
-      timeoutMs,
-    );
+  let lastError = "The dispute arbitration failed";
 
-    const buyer = buyerEvidenceSchema.safeParse(raw);
-    if (!buyer.success) {
-      return technicalFailure("The model returned invalid arbitration data", seller.data);
+  for (let attempt = 0; attempt <= ESCALATION_RULES.technicalRetries; attempt += 1) {
+    try {
+      const raw = await withTimeout(
+        (signal) =>
+          model.arbitrateDispute({ ...input, sellerAudit: seller.data }, images, signal),
+        timeoutMs,
+      );
+
+      const buyer = buyerEvidenceSchema.safeParse(raw);
+      if (buyer.success) {
+        return {
+          ...evaluateArbitrationRules({ sellerAudit: seller.data, buyerAudit: buyer.data }),
+          buyerAudit: buyer.data,
+          sellerAudit: seller.data,
+        };
+      }
+      lastError = "The model returned invalid arbitration data";
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "The dispute arbitration failed";
     }
-
-    const decision = evaluateArbitrationRules({
-      sellerAudit: seller.data,
-      buyerAudit: buyer.data,
-    });
-
-    return {
-      ...decision,
-      buyerAudit: buyer.data,
-      sellerAudit: seller.data,
-    };
-  } catch (error) {
-    return technicalFailure(
-      error instanceof Error ? error.message : "The dispute arbitration failed",
-      seller.data,
-    );
   }
+
+  return technicalFailure(lastError, seller.data);
 }

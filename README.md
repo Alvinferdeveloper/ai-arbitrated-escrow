@@ -51,7 +51,7 @@ walk all sides of the same deal.
 1. Open `/seller`.
 2. Pick a seeded seller and buyer, write the title, description, price
    (USD, from 1.00) and a delivery estimate (up to 14 days). Deals above
-   500 USD always get a mediator's review before shipping (`HIGH_VALUE`).
+   500 USD need a legible serial number or model label in photo A.
 3. Submitting writes the deal through `create_deal` (state `AWAITING_PAYMENT`
    plus the first `events` row) and takes you to the seller page at
    `/seller/<deal id>`, which links the Trust Link at `/t/<deal id>`.
@@ -70,11 +70,24 @@ real image type, hashes each file (SHA-256), stores it in the private
 a `PENDING` audit and moves the deal to `AUDITING` in one transaction. It
 answers right away; the model call runs in `after()`.
 
-The audit result decides the next state: `SHIPPED` (tracking read from the
-guide, auto-release deadline set), `EVIDENCE_REJECTED`, or `ESCALATED` when a
-rule fires or the model fails. The seller page and the Trust Link refresh every
-few seconds while the audit runs. `/api/cron/retry-audits` (every five minutes
-in `vercel.json`, same `CRON_SECRET`) reruns audits whose background run died.
+The AI decides the outcome on its own; explicit rules in `lib/agents/rules.ts`
+turn its validated findings into one of these:
+
+| Finding | Decision |
+| --- | --- |
+| Everything checks out | `SHIPPED`: tracking read from the guide, auto-release deadline set |
+| A fixable problem (product not shown clearly, not sealed, guide unreadable, weight that does not fit, missing serial on a high-value deal) | `EVIDENCE_REJECTED` with one instruction per photo to retake |
+| Photo A shows another kind of product altogether | `REFUNDING`: the AI cancels and refunds the buyer |
+| The third rejected upload | `REFUNDING` |
+| The model fails twice in a row | `ESCALATED` to a person, the only pre-shipment case that reaches one |
+
+The seller has `EVIDENCE_DEADLINE_MS` (3 days, 3 minutes in demo mode) from
+payment or from the last rejection to send valid photos;
+`/api/cron/expire-evidence` refunds the buyer when it passes. A refund the AI
+starts waits in `REFUNDING` until PayPal's webhook confirms it; if PayPal
+refuses it, the deal goes to a person. The seller page and the Trust Link
+refresh every few seconds while the audit runs. `/api/cron/retry-audits`
+reruns audits whose background run died.
 
 ### Sample evidence
 
@@ -138,7 +151,7 @@ CRON_SECRET=...
 curl -H "Authorization: Bearer $CRON_SECRET" https://your-app/api/cron/auto-release
 ```
 
-Vercel Hobby only allows daily crons, so `vercel.json` runs both cron routes
+Vercel Hobby only allows daily crons, so `vercel.json` runs the cron routes
 once a day as a backstop, and `.github/workflows/cron.yml` calls them every
 five minutes (GitHub may delay scheduled runs by a few minutes). Add the
 repository secrets `APP_URL` (the deployed origin) and `CRON_SECRET`; the
@@ -183,7 +196,7 @@ AI_STRUCTURED_OUTPUTS=true           # false if the endpoint rejects json_schema
 
 With `AI_STRUCTURED_OUTPUTS=false` the request uses `json_object` mode and the
 JSON Schema is written into the system prompt instead. Either way the reply is
-validated with Zod, and an invalid reply escalates the deal to a mediator. To
+validated with Zod; an invalid reply is retried once, then the deal goes to a person. To
 add a vendor with its own SDK, add one entry to `PROVIDERS` in `provider.ts`.
 
 ## Test credentials

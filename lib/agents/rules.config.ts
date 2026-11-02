@@ -1,5 +1,5 @@
-// Escalation thresholds. Tuned with the eval set in /evals.
-// Any rule that fires sends the deal to the human mediator, whatever the model says.
+// Rule thresholds. Tuned with the eval set in /evals. The model reports findings;
+// these rules turn them into the decision, whatever the model says.
 
 export const ESCALATION_RULES = {
   /** Allowed deviation between the guide weight and the expected product weight. */
@@ -8,8 +8,12 @@ export const ESCALATION_RULES = {
   requiredGuideFields: ["carrier", "trackingNumber", "weightKg", "date"] as const,
   /** Audit time budget before it counts as a technical failure. */
   auditTimeoutMs: 60_000,
-  /** Deals above this always get a person's review before shipping. */
+  /** Deals above this need a legible serial number or model label in photo A. */
   highValueReviewAboveCents: 50_000,
+  /** Extra model calls after an error or invalid output before giving up. */
+  technicalRetries: 1,
+  /** Rejected uploads after which the buyer is refunded instead of asked again. */
+  maxEvidenceAttempts: 3,
   /** Audits stuck in PENDING or RUNNING longer than this are retried by cron. */
   stuckAuditAfterMs: 3 * 60_000,
 } as const;

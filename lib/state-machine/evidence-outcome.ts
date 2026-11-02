@@ -1,6 +1,6 @@
 import type { EvidenceAuditDecision } from "@/lib/agents/audit";
-import { ESCALATION_RULE_LABELS } from "@/lib/agents/rules.config";
-import type { EvidenceIssue } from "@/lib/agents/rules";
+import { ESCALATION_RULES } from "@/lib/agents/rules.config";
+import { startAiRefund, type AiRefundStore } from "./ai-refund";
 import { shipDeal, type ShippingStore } from "./shipping";
 import {
   transition,
@@ -8,43 +8,25 @@ import {
   type TransitionEvent,
 } from "./transition";
 
-// Maps an audit outcome to the next deal state. No money moves here.
-
-const ISSUE_COPY: Record<EvidenceIssue, string> = {
-  PACKING_NOT_SHOWN: "Photo B does not show the product inside the packing.",
-  PARCEL_NOT_SEALED: "Photo C does not show a sealed parcel.",
-};
-
-export function evidenceIssueCopy(issue: EvidenceIssue): string {
-  return ISSUE_COPY[issue];
-}
-
-function escalationDetail(decision: EvidenceAuditDecision): string {
-  const [rule] = decision.triggeredRules;
-
-  if (rule === "TECHNICAL_FAILURE") {
-    return "The evidence audit could not finish. A person reviews the photos instead.";
-  }
-
-  if (rule === "HIGH_VALUE" && decision.triggeredRules.length === 1) {
-    return "The evidence passed, but deals this large get a person's review before shipping.";
-  }
-
-  const firstInconsistency = decision.audit?.inconsistencies[0];
-  if (firstInconsistency) return firstInconsistency;
-
-  return `${rule ? ESCALATION_RULE_LABELS[rule] : "A rule"} sent this case to a person.`;
-}
+// Maps an audit outcome to the next deal state. The AI ships, asks for
+// specific retakes, or refunds; only a technical failure reaches a person.
 
 export type EvidenceOutcomeStores = {
   transitions: DealTransitionStore;
   shipping: ShippingStore;
+  refunds: AiRefundStore;
+};
+
+export type EvidenceOutcomeContext = {
+  /** Rejected uploads since the deal last entered FUNDS_HELD. */
+  previousRejections: number;
 };
 
 export function applyEvidenceDecision(
   dealId: string,
   decision: EvidenceAuditDecision,
   stores: EvidenceOutcomeStores,
+  { previousRejections }: EvidenceOutcomeContext,
 ): Promise<TransitionEvent> {
   if (decision.outcome === "PASS") {
     return shipDeal(
@@ -65,7 +47,23 @@ export function applyEvidenceDecision(
     );
   }
 
-  if (decision.outcome === "BLOCK") {
+  if (decision.outcome === "REFUND") {
+    return startAiRefund(
+      { dealId, from: "AUDITING", actor: "ai", reason: "DIFFERENT_ITEM" },
+      stores.refunds,
+    );
+  }
+
+  if (decision.outcome === "RETAKE") {
+    const attempt = previousRejections + 1;
+
+    if (attempt >= ESCALATION_RULES.maxEvidenceAttempts) {
+      return startAiRefund(
+        { dealId, from: "AUDITING", actor: "ai", reason: "ATTEMPTS_EXHAUSTED" },
+        stores.refunds,
+      );
+    }
+
     return transition(
       {
         dealId,
@@ -73,8 +71,11 @@ export function applyEvidenceDecision(
         to: "EVIDENCE_REJECTED",
         actor: "ai",
         payload: {
-          evidenceIssues: decision.evidenceIssues,
-          detail: decision.evidenceIssues.map(evidenceIssueCopy).join(" "),
+          retakes: decision.retakes,
+          triggeredRules: decision.triggeredRules,
+          attempt,
+          attemptsLeft: ESCALATION_RULES.maxEvidenceAttempts - attempt,
+          detail: decision.retakes.map((retake) => retake.instruction).join(" "),
         },
       },
       stores.transitions,
@@ -88,9 +89,9 @@ export function applyEvidenceDecision(
       to: "ESCALATED",
       actor: "ai",
       payload: {
-        rule: decision.triggeredRules[0] ?? "TECHNICAL_FAILURE",
+        rule: "TECHNICAL_FAILURE",
         triggeredRules: decision.triggeredRules,
-        reasonDetail: escalationDetail(decision),
+        reasonDetail: "The evidence audit failed twice. A person reviews the photos instead.",
       },
     },
     stores.transitions,

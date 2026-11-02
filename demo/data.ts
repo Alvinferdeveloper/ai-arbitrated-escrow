@@ -235,6 +235,8 @@ export function getDemoDeals(now: Date = new Date()): DealView[] {
     autoReleaseAt:
       autoReleaseInMs === null ? null : new Date(now.getTime() + autoReleaseInMs),
     createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
+    evidenceDueAt: null,
+    aiDecision: null,
   }));
 }
 

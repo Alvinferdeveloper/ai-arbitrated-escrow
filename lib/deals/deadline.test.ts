@@ -8,6 +8,10 @@ function inMs(ms: number): Date {
 }
 
 describe("formatDeadline", () => {
+  it("names another deadline when asked", () => {
+    expect(formatDeadline(inMs(2 * 60 * 1000), now, "Evidence due")).toBe("Evidence due in 2m");
+  });
+
   it("shows days and hours for a long deadline", () => {
     expect(formatDeadline(inMs(46 * 60 * 60 * 1000), now)).toBe("Auto-release in 1d 22h");
   });

@@ -11,7 +11,13 @@ import {
 } from "./transition";
 
 const audit: EvidenceAudit = {
-  product: { matchesListing: true, expectedWeightKg: 1.4, reason: "Matches." },
+  product: {
+    matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
+    expectedWeightKg: 1.4,
+    reason: "Matches.",
+  },
   packing: { productInside: true, reason: "Inside." },
   parcel: { sealed: true, guideVisible: true, reason: "Sealed." },
   guide: {
@@ -28,6 +34,7 @@ class Store {
   state: DealState = "AUDITING";
   readonly events: TransitionEvent[] = [];
   readonly shipments: Shipment[] = [];
+  readonly refundKeys: string[] = [];
 
   async transition(record: TransitionRecord): Promise<TransitionEvent> {
     if (record.from !== this.state) {
@@ -43,81 +50,78 @@ class Store {
     this.shipments.push(shipment);
     return this.transition(record);
   }
+
+  async startRefund(record: TransitionRecord, idempotencyKey: string): Promise<TransitionEvent> {
+    this.refundKeys.push(idempotencyKey);
+    return this.transition(record);
+  }
 }
 
-async function apply(decision: EvidenceAuditDecision) {
+async function apply(decision: EvidenceAuditDecision, previousRejections = 0) {
   const store = new Store();
-  const event = await applyEvidenceDecision("deal", decision, {
-    transitions: store,
-    shipping: store,
-  });
+  const event = await applyEvidenceDecision(
+    "deal",
+    decision,
+    { transitions: store, shipping: store, refunds: store },
+    { previousRejections },
+  );
   return { event, store };
 }
 
+const retake: EvidenceAuditDecision = {
+  outcome: "RETAKE",
+  triggeredRules: ["WEIGHT_OUT_OF_RANGE"],
+  retakes: [{ slot: "C", instruction: "Retake photo C: weigh the parcel again." }],
+  audit,
+};
+
 describe("applyEvidenceDecision()", () => {
   it("ships a passed audit with the guide tracking", async () => {
-    const { store, event } = await apply({
-      outcome: "PASS",
-      triggeredRules: [],
-      evidenceIssues: [],
-      audit,
-    });
+    const { store, event } = await apply({ outcome: "PASS", triggeredRules: [], retakes: [], audit });
 
     expect(store.state).toBe("SHIPPED");
     expect(event.actor).toBe("ai");
-    expect(store.shipments).toEqual([
-      { carrier: "UPS", trackingNumber: "1Z999AA10123456784" },
-    ]);
+    expect(store.shipments).toEqual([{ carrier: "UPS", trackingNumber: "1Z999AA10123456784" }]);
   });
 
-  it("rejects blocked evidence and says what is missing", async () => {
-    const { store, event } = await apply({
-      outcome: "BLOCK",
-      triggeredRules: [],
-      evidenceIssues: ["PARCEL_NOT_SEALED"],
-      audit,
-    });
+  it("asks for specific retakes and counts the attempt", async () => {
+    const { store, event } = await apply(retake);
 
     expect(store.state).toBe("EVIDENCE_REJECTED");
-    expect(store.shipments).toHaveLength(0);
+    expect(store.refundKeys).toHaveLength(0);
     expect(event.payload).toMatchObject({
-      evidenceIssues: ["PARCEL_NOT_SEALED"],
-      detail: "Photo C does not show a sealed parcel.",
+      retakes: retake.retakes,
+      attempt: 1,
+      attemptsLeft: 2,
+      detail: "Retake photo C: weigh the parcel again.",
     });
   });
 
-  it("escalates with the first rule as the case reason", async () => {
+  it("refunds instead of asking again on the last attempt", async () => {
+    const { store, event } = await apply(retake, 2);
+
+    expect(store.state).toBe("REFUNDING");
+    expect(event.payload.reason).toBe("ATTEMPTS_EXHAUSTED");
+    expect(store.refundKeys[0]).toMatch(/^ai-refund-/);
+  });
+
+  it("refunds a different item without a retake", async () => {
     const { store, event } = await apply({
-      outcome: "ESCALATE",
-      triggeredRules: ["WEIGHT_OUT_OF_RANGE", "HIGH_VALUE"],
-      evidenceIssues: [],
-      audit: { ...audit, inconsistencies: ["The guide shows 0.4 kg."] },
-    });
-
-    expect(store.state).toBe("ESCALATED");
-    expect(event.payload).toMatchObject({
-      rule: "WEIGHT_OUT_OF_RANGE",
-      triggeredRules: ["WEIGHT_OUT_OF_RANGE", "HIGH_VALUE"],
-      reasonDetail: "The guide shows 0.4 kg.",
-    });
-  });
-
-  it("explains a high-value review on clean evidence", async () => {
-    const { event } = await apply({
-      outcome: "ESCALATE",
-      triggeredRules: ["HIGH_VALUE"],
-      evidenceIssues: [],
+      outcome: "REFUND",
+      triggeredRules: ["PRODUCT_MISMATCH"],
+      retakes: [],
       audit,
     });
 
-    expect(event.payload.reasonDetail).toContain("deals this large");
+    expect(store.state).toBe("REFUNDING");
+    expect(event).toMatchObject({ actor: "ai", payload: { reason: "DIFFERENT_ITEM" } });
   });
 
-  it("escalates a technical failure without an audit", async () => {
+  it("sends only a technical failure to a person", async () => {
     const { store, event } = await apply({
       outcome: "ESCALATE",
       triggeredRules: ["TECHNICAL_FAILURE"],
-      evidenceIssues: [],
+      retakes: [],
       audit: null,
       technicalError: "timeout",
     });

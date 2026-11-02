@@ -94,7 +94,8 @@ export async function executeSettlement(
   if (
     settlement.dealState !== "SHIPPED" &&
     settlement.dealState !== "ESCALATED" &&
-    settlement.dealState !== "ARBITRATING"
+    settlement.dealState !== "ARBITRATING" &&
+    settlement.dealState !== "REFUNDING"
   ) {
     return { outcome: "SKIPPED", reason: "DEAL_NOT_OPEN_TO_SETTLE" };
   }

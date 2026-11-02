@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AlertCircle, ArrowLeft } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
+import { AiRetakeRequest } from "@/components/ai-retake-request";
 import { AuditReport } from "@/components/audit-report";
 import { AuditWatcher } from "@/components/audit-watcher";
 import { EvidenceSlot } from "@/components/evidence-slot";
@@ -13,7 +14,7 @@ import { EvidenceUploadForm } from "@/components/seller/evidence-upload-form";
 import { getDemoDeal } from "@/demo/data";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
-import { formatDeadline } from "@/lib/deals/deadline";
+import { holdingSlipDeadline } from "@/lib/deals/deadline";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
 
@@ -61,7 +62,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
       <HoldingSlip
         amountCents={deal.priceCents}
         state={deal.state}
-        deadline={deal.autoReleaseAt ? formatDeadline(deal.autoReleaseAt) : undefined}
+        deadline={holdingSlipDeadline(deal)}
       />
 
       <section aria-labelledby="deal-title" className="space-y-2">
@@ -88,6 +89,10 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
       </section>
 
       <SellerNextStep deal={deal} />
+
+      {deal.state === "EVIDENCE_REJECTED" && deal.aiDecision ? (
+        <AiRetakeRequest decision={deal.aiDecision} />
+      ) : null}
 
       {canUpload ? <EvidenceUploadForm dealId={deal.id} /> : null}
 
@@ -130,9 +135,17 @@ function SellerNextStep({ deal }: { deal: DealView }) {
       title: "Share the Trust Link",
       body: `${deal.buyer.displayName} pays through the Trust Link. You upload the evidence once the money is held.`,
     },
+    FUNDS_HELD: {
+      title: "Upload the evidence",
+      body: "The money is held. Send photos A, B and C before the deadline in the slip above, or the AI refunds the buyer.",
+    },
     EVIDENCE_REJECTED: {
-      title: "Upload clearer photos",
-      body: "The last audit could not clear the parcel. Check the report below and send all three photos again.",
+      title: "Retake the photos",
+      body: "Send all three photos again with the changes below, before the deadline in the slip above.",
+    },
+    REFUNDING: {
+      title: "Deal cancelled by the AI",
+      body: deal.aiDecision?.detail ?? "The AI cancelled the deal and is refunding the buyer.",
     },
     SHIPPED: {
       title: "Send the parcel",

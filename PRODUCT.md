@@ -33,8 +33,10 @@ goal is relief: "someone is keeping the receipt".
    anything else.
 2. **Show the record, not a verdict.** AI output is presented as evidence, findings and the rule
    that fired, never as a score or a bare "approved".
-3. **Know when not to decide.** Escalation to a human is a feature, presented with the same care
-   as an automatic outcome.
+3. **The AI decides, people supervise.** The AI ships, asks for retakes or refunds on its own,
+   from validated findings and explicit rules. A person only takes the cases the evidence cannot
+   settle (two sides that contradict each other, or a technical failure), and every AI decision
+   stays on the record.
 4. **One decision per screen.** Buyers and sellers are anxious strangers on a phone; reduce every
    step to one clear action.
 5. **The judge is a user.** A judge must walk every role from one URL with no sign-up and no
@@ -81,31 +83,36 @@ parcel. Human dispute handling costs more than the sale itself, so nobody arbitr
 
 ## Hard product rules (never break these)
 
-- **USD only, any amount from 1.00 USD.** Deals above 500 USD always get a mediator's review
-  before shipping (`HIGH_VALUE`). `MAX_DEAL_AMOUNT` is a typo guard, not a product limit, and the
+- **USD only, any amount from 1.00 USD.** Deals above 500 USD need a legible serial number or
+  model label in photo A (`HIGH_VALUE`). `MAX_DEAL_AMOUNT` is a typo guard, not a product limit, and the
   UI never advertises a range.
 - **Delivery estimate at most 14 days.** Auto-release = estimate + 48 h (2 minutes in demo mode).
-- **The AI never moves money.** The AI and the mediator only submit a decision to the state machine;
-  the state machine runs the guarded PayPal action.
-- **Decisions come from rules, not model confidence.** Any escalation rule firing sends the deal to
-  the mediator, whatever the model says.
+- **The AI decides, the state machine moves the money.** An AI refund or release is a decision the
+  state machine executes through the guarded PayPal action; only PayPal's webhook settles it.
+- **Decisions come from rules, not model confidence.** The model reports structured findings; the
+  rules turn them into ship, retake, refund or escalate. Nothing branches on a confidence score.
 - **Released / Refunded only after the PayPal webhook confirms it.** Before that the deal is
   payout-pending or refund-pending.
-- **If the AI fails, times out or returns invalid output, the deal goes to the mediator.**
+- **If the AI fails, times out or returns invalid output, it retries once; then a person takes the
+  case.** No money moves on a failed call.
+- **The seller has 3 days and 3 attempts to send valid evidence** (3 minutes in demo mode); after
+  that the AI refunds the buyer.
 - **English only** in the interface, README, Devpost text and video.
 - **Sandbox only.** No real money, all keys server-side.
 
-## Escalation rules (send to mediator)
+## Decision rules
 
-| Rule | Trigger |
-| --- | --- |
-| Product mismatch | Photo A does not match the listing |
-| Weight out of range | Guide weight outside expected range (default tolerance 25%) |
-| Unreadable guide | Guide illegible or a required field missing |
-| Conflicting evidence | Buyer and seller evidence contradict and no rule above settles it |
-| Technical failure | Audit fails, times out or returns invalid output |
-| Out-of-band reversal | PayPal sends `PAYMENT.CAPTURE.REVERSED` |
-| High-value deal | The deal is above 500 USD, even with clean evidence |
+| Rule | Trigger | Decision |
+| --- | --- | --- |
+| Different item | Photo A shows another kind of product than the listing | AI refunds the buyer |
+| Product mismatch | Photo A does not clearly match the listing | AI asks to retake photo A |
+| Weight out of range | Guide weight outside the expected range (25% tolerance) | AI asks to retake photo C |
+| Unreadable guide | Guide illegible or a required field missing | AI asks to retake photo C |
+| High-value deal | Above 500 USD without a legible serial number or model label | AI asks to retake photo A |
+| Attempts exhausted / deadline | Third rejection, or no valid evidence in 3 days | AI refunds the buyer |
+| Conflicting evidence | Buyer and seller evidence contradict each other in a dispute | A person decides |
+| Technical failure | The model fails twice in a row | A person decides |
+| Out-of-band reversal | PayPal sends `PAYMENT.CAPTURE.REVERSED` | A person decides |
 
 Thresholds live in `lib/agents/rules.config.ts` and are tuned with the eval set.
 

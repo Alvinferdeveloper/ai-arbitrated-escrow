@@ -9,7 +9,7 @@ import type { ArbitrationModel } from "./ports";
 import type { BuyerEvidenceAudit, EvidenceAudit } from "./schemas";
 
 const sellerAudit: EvidenceAudit = {
-  product: { matchesListing: true, expectedWeightKg: 1.4, reason: "Matches." },
+  product: { matchesListing: true, differentItem: false, identifierVisible: false, expectedWeightKg: 1.4, reason: "Matches." },
   packing: { productInside: true, reason: "Inside." },
   parcel: { sealed: true, guideVisible: true, reason: "Sealed." },
   guide: {

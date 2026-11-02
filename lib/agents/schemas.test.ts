@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { buyerEvidenceSchema, evidenceAuditSchema } from "./schemas";
+import {
+  buyerEvidenceSchema,
+  evidenceAuditSchema,
+  storedEvidenceAuditSchema,
+} from "./schemas";
 
 const validAudit = {
   product: {
     matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
     expectedWeightKg: 1.4,
     reason: "The black headphones match the model in the listing.",
   },
@@ -204,5 +210,22 @@ describe("buyer evidence schema", () => {
         inconsistencies: Array.from({ length: 11 }, (_, index) => `Issue ${index}`),
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("evidence audit schema, new findings", () => {
+  it("rejects a different item that also matches the listing", () => {
+    const result = evidenceAuditSchema.safeParse({
+      ...validAudit,
+      product: { ...validAudit.product, differentItem: true },
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("reads audits stored before the new fields existed", () => {
+    const legacyProduct = { matchesListing: true, expectedWeightKg: 1.4, reason: "Matches." };
+    const result = storedEvidenceAuditSchema.safeParse({ ...validAudit, product: legacyProduct });
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.product.differentItem).toBe(false);
   });
 });

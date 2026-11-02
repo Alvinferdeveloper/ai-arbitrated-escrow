@@ -64,6 +64,23 @@ export async function getDealState(dealId: string): Promise<DealState | null> {
   return data?.state ?? null;
 }
 
+/** Rejected uploads since the deal last entered FUNDS_HELD (payment or a mediator request). */
+export async function countEvidenceRejections(dealId: string): Promise<number> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("events")
+    .select("to_state")
+    .eq("deal_id", dealId)
+    .in("to_state", ["FUNDS_HELD", "EVIDENCE_REJECTED"])
+    .order("created_at", { ascending: false })
+    .returns<{ to_state: DealState }[]>();
+
+  if (error) throw new Error(`Could not count evidence rejections: ${error.message}`);
+
+  const rows = data ?? [];
+  const sinceFundsHeld = rows.findIndex((row) => row.to_state === "FUNDS_HELD");
+  return (sinceFundsHeld === -1 ? rows : rows.slice(0, sinceFundsHeld)).length;
+}
+
 export async function getLatestEvidenceAudit(
   dealId: string,
   kind: AuditKind = "EVIDENCE_AUDIT",
