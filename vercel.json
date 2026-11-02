@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/cron/auto-release",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 12 * * *"
     },
     {
       "path": "/api/cron/retry-audits",
-      "schedule": "*/5 * * * *"
+      "schedule": "30 12 * * *"
     }
   ]
 }

@@ -138,8 +138,11 @@ CRON_SECRET=...
 curl -H "Authorization: Bearer $CRON_SECRET" https://your-app/api/cron/auto-release
 ```
 
-`vercel.json` runs that route every five minutes; check that your Vercel plan
-allows the schedule. The route processes five deals per call and is safe to
+Vercel Hobby only allows daily crons, so `vercel.json` runs both cron routes
+once a day as a backstop, and `.github/workflows/cron.yml` calls them every
+five minutes (GitHub may delay scheduled runs by a few minutes). Add the
+repository secrets `APP_URL` (the deployed origin) and `CRON_SECRET`; the
+workflow can also be started by hand from the Actions tab. The route processes five deals per call and is safe to
 call twice: the payout row and its idempotency key are reused.
 
 ## PayPal setup
