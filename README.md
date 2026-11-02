@@ -84,12 +84,15 @@ real photos that go through the same upload and audit; nothing is faked. Each
 scenario only shows up once its photos exist:
 
 ```
-public/demo-evidence/honest/{A,B,C}.jpg             product, product in box, sealed parcel with a legible guide (about 1.4 kg)
-public/demo-evidence/wrong-weight/{A,B,C}.jpg       same A and B, guide shows a weight far too low (for example 0.4 kg)
+public/demo-evidence/honest/{A,B,C}.jpg             product, product in box, sealed parcel with a legible guide (about 0.7 to 0.9 kg)
+public/demo-evidence/wrong-weight/{A,B,C}.jpg       same A and B, guide shows a weight far too low (for example 0.2 kg)
 public/demo-evidence/different-product/{A,B,C}.jpg  A shows another product than the listing
 ```
 
-The listing they match is `SAMPLE_LISTING` in `demo/sample-evidence.ts`.
+The listing they match is `SAMPLE_LISTING` in `demo/sample-evidence.ts`. The
+audit compares the guide weight with the model's estimate for the product with
+its box (about 0.7 kg for these headphones) at a 25% tolerance, so the honest
+guide must show a realistic weight.
 
 ## Disputes
 
