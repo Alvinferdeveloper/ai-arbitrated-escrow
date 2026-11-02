@@ -15,7 +15,7 @@ export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 export const AUTO_RELEASE_GRACE_MS = DEMO_MODE ? 2 * 60 * 1000 : 48 * 60 * 60 * 1000;
 
 /** Time the seller has to upload valid evidence before the buyer is refunded. */
-export const EVIDENCE_DEADLINE_MS = DEMO_MODE ? 3 * 60 * 1000 : 3 * 24 * 60 * 60 * 1000;
+export const EVIDENCE_DEADLINE_MS = DEMO_MODE ? 10 * 60 * 1000 : 3 * 24 * 60 * 60 * 1000;
 
 /** Zero in demo mode, so auto-release happens after the grace period alone. */
 export const DELIVERY_DAY_MS = DEMO_MODE ? 0 : 24 * 60 * 60 * 1000;

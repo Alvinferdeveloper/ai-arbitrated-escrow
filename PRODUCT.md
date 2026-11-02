@@ -95,7 +95,7 @@ parcel. Human dispute handling costs more than the sale itself, so nobody arbitr
   payout-pending or refund-pending.
 - **If the AI fails, times out or returns invalid output, it retries once; then a person takes the
   case.** No money moves on a failed call.
-- **The seller has 3 days and 3 attempts to send valid evidence** (3 minutes in demo mode); after
+- **The seller has 3 days and 3 attempts to send valid evidence** (10 minutes in demo mode); after
   that the AI refunds the buyer.
 - **English only** in the interface, README, Devpost text and video.
 - **Sandbox only.** No real money, all keys server-side.

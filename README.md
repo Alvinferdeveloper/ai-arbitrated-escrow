@@ -81,7 +81,7 @@ turn its validated findings into one of these:
 | The third rejected upload | `REFUNDING` |
 | The model fails twice in a row | `ESCALATED` to a person, the only pre-shipment case that reaches one |
 
-The seller has `EVIDENCE_DEADLINE_MS` (3 days, 3 minutes in demo mode) from
+The seller has `EVIDENCE_DEADLINE_MS` (3 days, 10 minutes in demo mode) from
 payment or from the last rejection to send valid photos;
 `/api/cron/expire-evidence` refunds the buyer when it passes. A refund the AI
 starts waits in `REFUNDING` until PayPal's webhook confirms it; if PayPal
