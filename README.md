@@ -122,7 +122,7 @@ scenario only shows up once its photos exist:
 ```
 public/demo-evidence/honest/{A,B,C}.jpg             product, product in box, sealed parcel with a legible guide (about 0.7 to 0.9 kg)
 public/demo-evidence/wrong-weight/{A,B,C}.jpg       same A and B, guide shows a weight far too low (for example 0.2 kg)
-public/demo-evidence/different-product/{A,B,C}.jpg  A shows another product than the listing
+public/demo-evidence/different-product/{A,B,C}.jpg  A shows another kind of product (for example a mug)
 public/demo-evidence/unboxing-item-inside/D.jpg     opened parcel with the item inside (buyer lies)
 public/demo-evidence/unboxing-empty/D.jpg           opened parcel, empty (legitimate claim)
 ```
@@ -176,11 +176,12 @@ CRON_SECRET=...
 curl -H "Authorization: Bearer $CRON_SECRET" https://your-app/api/cron/auto-release
 ```
 
-Vercel Hobby only allows daily crons, so `vercel.json` runs the cron routes
-once a day as a backstop, and `.github/workflows/cron.yml` calls them every
-five minutes (GitHub may delay scheduled runs by a few minutes). Add the
-repository secrets `APP_URL` (the deployed origin) and `CRON_SECRET`; the
-workflow can also be started by hand from the Actions tab. The route processes five deals per call and is safe to
+Vercel Hobby only allows daily crons and GitHub drops most scheduled runs, so
+call the cron routes from an external scheduler such as cron-job.org:
+`expire-evidence` and `auto-release` every minute, `retry-audits` every five,
+each a GET with the header `Authorization: Bearer <CRON_SECRET>`. The daily
+`vercel.json` crons and `.github/workflows/cron.yml` (secrets `APP_URL` and
+`CRON_SECRET`, runnable by hand from the Actions tab) are backstops. The route processes five deals per call and is safe to
 call twice: the payout row and its idempotency key are reused.
 
 ## PayPal setup

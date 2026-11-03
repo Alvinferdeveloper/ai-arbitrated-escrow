@@ -27,12 +27,12 @@ export const SAMPLE_SCENARIOS: readonly SampleScenario[] = [
   {
     id: "wrong-weight",
     label: "Wrong weight",
-    expected: "The guide weight is too low for the product, so a mediator reviews it.",
+    expected: "The guide weight is too low for the product, so the AI asks for a new guide photo.",
   },
   {
     id: "different-product",
     label: "Different product",
-    expected: "Photo A does not match the listing, so a mediator reviews it.",
+    expected: "Photo A shows another kind of product, so the AI cancels the deal and refunds the buyer.",
   },
 ];
 
