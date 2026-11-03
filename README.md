@@ -48,7 +48,11 @@ walk all sides of the same deal.
 
 ## Create a deal
 
-1. Open `/seller`.
+1. Open `/seller`. Optionally start from a screenshot of the listing: the
+   browser resizes it and `/api/deals/extract` asks the vision model for the
+   title, price and description, which fill the form. Nothing is stored, a
+   price in another currency is left for the seller to enter in USD, and the
+   route allows five screenshots per minute per IP.
 2. Pick a seeded seller and buyer, write the title, description, price
    (USD, from 1.00) and a delivery estimate (up to 14 days). Deals above
    500 USD need a legible serial number or model label in photo A.

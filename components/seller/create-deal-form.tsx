@@ -6,6 +6,8 @@ import { createDealAction, type CreateDealFormState } from "@/app/(dashboard)/se
 import { Button } from "@/components/ui/button";
 import type { PartyOption } from "@/lib/db/deal-store";
 import { SAMPLE_LISTING } from "@/demo/sample-evidence";
+import type { ListingDraft } from "@/lib/agents/listing";
+import { ScreenshotImport } from "./screenshot-import";
 import { DEMO_MODE, MAX_DELIVERY_ESTIMATE_DAYS } from "@/lib/config";
 
 const FIELD =
@@ -51,24 +53,30 @@ export function CreateDealForm({
 
   const formRef = useRef<HTMLFormElement>(null);
 
-  // Matches the sample evidence photos, so the demo audit compares like with like.
-  function fillSampleListing() {
+  function fillFields(values: Record<string, string | null>) {
     const fields = formRef.current?.elements;
     if (!fields) return;
-    for (const [name, value] of Object.entries(SAMPLE_LISTING)) {
+    for (const [name, value] of Object.entries(values)) {
       const field = fields.namedItem(name);
-      if (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) {
+      if (value !== null && (field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement)) {
         field.value = value;
       }
     }
   }
 
+  function fillFromDraft(draft: ListingDraft) {
+    fillFields({ title: draft.title, description: draft.description, priceUsd: draft.priceUsd });
+  }
+
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
+      <ScreenshotImport onDraft={fillFromDraft} />
+
       {DEMO_MODE ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-rule-line p-4">
           <p className="text-[0.875rem] text-ink">Trying the demo? Start from the sample listing.</p>
-          <Button type="button" variant="ghost" size="sm" onClick={fillSampleListing}>
+          {/* Matches the sample evidence photos, so the demo audit compares like with like. */}
+          <Button type="button" variant="ghost" size="sm" onClick={() => fillFields(SAMPLE_LISTING)}>
             Use the sample listing
           </Button>
         </div>

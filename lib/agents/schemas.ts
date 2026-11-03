@@ -122,3 +122,16 @@ export const buyerEvidenceSchema = z
   });
 
 export type BuyerEvidenceAudit = z.infer<typeof buyerEvidenceSchema>;
+
+/** What the model reads from a screenshot of a listing. Null when not visible. */
+export const listingExtractionSchema = z.strictObject({
+  /** False when the image is not a product listing at all. */
+  isListing: z.boolean(),
+  title: z.string().trim().min(1).max(140).nullable(),
+  description: z.string().trim().min(1).max(2000).nullable(),
+  price: z.number().positive().finite().max(10_000_000).nullable(),
+  /** ISO 4217 code such as USD or EUR, only when the screenshot shows it. */
+  currency: z.string().trim().regex(/^[A-Z]{3}$/).nullable(),
+});
+
+export type ListingExtraction = z.infer<typeof listingExtractionSchema>;

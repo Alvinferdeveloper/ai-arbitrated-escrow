@@ -60,3 +60,12 @@ export interface ArbitrationModel {
     signal: AbortSignal,
   ): Promise<unknown>;
 }
+
+export type ListingImage = {
+  mediaType: "image/jpeg" | "image/png" | "image/webp";
+  data: Uint8Array;
+};
+
+export interface ListingModel {
+  extractListing(image: ListingImage, signal: AbortSignal): Promise<unknown>;
+}

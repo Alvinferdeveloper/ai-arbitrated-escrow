@@ -7,16 +7,24 @@ import type {
   ArbitrationModel,
   EvidenceAuditInput,
   EvidenceImage,
+  ListingImage,
+  ListingModel,
   VisionModel,
 } from "./ports";
 import {
   ARBITRATION_SYSTEM,
   EVIDENCE_AUDIT_SYSTEM,
+  LISTING_EXTRACTION_PROMPT,
+  LISTING_EXTRACTION_SYSTEM,
   buildArbitrationPrompt,
   buildEvidenceAuditPrompt,
 } from "./prompts";
 import { resolveModel, type ResolvedModel } from "./provider";
-import { buyerEvidenceSchema, evidenceAuditSchema } from "./schemas";
+import {
+  buyerEvidenceSchema,
+  evidenceAuditSchema,
+  listingExtractionSchema,
+} from "./schemas";
 
 // The only place that calls the model; everything else depends on the ports.
 
@@ -45,7 +53,7 @@ function arbitrationImageLabel(
 
 export function createVisionModel(
   resolved: ResolvedModel = resolveModel(),
-): VisionModel & ArbitrationModel {
+): VisionModel & ArbitrationModel & ListingModel {
   const { model, structuredOutputs } = resolved;
 
   return {
@@ -113,6 +121,30 @@ export function createVisionModel(
         ),
         messages: [{ role: "user", content }],
         output: Output.object({ schema: buyerEvidenceSchema }),
+        abortSignal: signal,
+      });
+
+      return output;
+    },
+
+    async extractListing(image: ListingImage, signal: AbortSignal) {
+      const { output } = await generateText({
+        model,
+        system: systemWithSchema(
+          LISTING_EXTRACTION_SYSTEM,
+          listingExtractionSchema,
+          structuredOutputs,
+        ),
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: LISTING_EXTRACTION_PROMPT },
+              { type: "file", mediaType: image.mediaType, data: image.data },
+            ],
+          },
+        ],
+        output: Output.object({ schema: listingExtractionSchema }),
         abortSignal: signal,
       });
 
