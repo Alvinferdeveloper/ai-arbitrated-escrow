@@ -85,9 +85,17 @@ The seller has `EVIDENCE_DEADLINE_MS` (3 days, 10 minutes in demo mode) from
 payment or from the last rejection to send valid photos;
 `/api/cron/expire-evidence` refunds the buyer when it passes. A refund the AI
 starts waits in `REFUNDING` until PayPal's webhook confirms it; if PayPal
-refuses it, the deal goes to a person. The seller page and the Trust Link
-refresh every few seconds while the audit runs. `/api/cron/retry-audits`
-reruns audits whose background run died.
+refuses it, the deal goes to a person. `/api/cron/retry-audits` reruns audits
+whose background run died.
+
+## Live updates
+
+A trigger on `events` broadcasts every state change on a public Supabase
+Realtime channel, `deal:<id>`. The message carries only the new state, so the
+anon key never reads a table; the buyer, seller and mediator screens just
+re-render from the server. While the system is working (an audit, an
+arbitration, a refund or a payment in flight) the screens also poll every few
+seconds as a fallback. Needs `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 ### Judge path
 

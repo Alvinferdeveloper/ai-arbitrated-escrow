@@ -25,6 +25,11 @@ export type StatePresentation = {
   nextAction: string;
 };
 
+/** True while the system, not a person, is expected to move the deal next. */
+export function isWaitingOnSystem(state: DealState): boolean {
+  return STATE_PRESENTATION[state].nextActor === "system";
+}
+
 export const STATE_PRESENTATION: Record<DealState, StatePresentation> = {
   AWAITING_PAYMENT: {
     label: "Waiting for payment",

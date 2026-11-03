@@ -12,6 +12,7 @@ import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
 import { CaseTimeline } from "@/components/mediation/case-timeline";
 import { MediatorActions } from "@/components/mediation/mediator-actions";
+import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { RoleSwitcher } from "@/components/role-switcher";
 import { ESCALATION_RULE_LABELS } from "@/lib/agents/rules.config";
 import { formatCaseAge } from "@/lib/mediation/age";
@@ -36,6 +37,7 @@ export default async function MediatorCasePage({
         Back to queue
       </Link>
 
+      <DealLiveUpdates dealId={caseFile.id} waiting={caseFile.settlement !== null} />
       <RoleSwitcher dealId={caseFile.id} state={caseFile.state} active="mediator" />
 
       <HoldingSlip

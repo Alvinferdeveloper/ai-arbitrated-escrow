@@ -4,7 +4,7 @@ import { AlertCircle } from "lucide-react";
 import { connection } from "next/server";
 import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
-import { AuditWatcher } from "@/components/audit-watcher";
+import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
 import { DisputeForm } from "@/components/buyer/dispute-form";
 import { SandboxBuyerNote } from "@/components/buyer/sandbox-buyer-note";
@@ -17,6 +17,7 @@ import { holdingSlipDeadline } from "@/lib/deals/deadline";
 import { formatMoney } from "@/lib/deals/money";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
+import { isWaitingOnSystem } from "@/lib/state-machine/presentation";
 import { getCapturePayment } from "@/lib/db/checkout-store";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { getDealSettlement } from "@/lib/db/dispute-store";
@@ -92,6 +93,10 @@ async function TrustLinkContent({
 
   return (
     <div className="space-y-8">
+      <DealLiveUpdates
+        dealId={deal.id}
+        waiting={paymentInProgress || isWaitingOnSystem(deal.state)}
+      />
       <RoleSwitcher dealId={deal.id} state={deal.state} active="buyer" />
       <HoldingSlip
         amountCents={deal.priceCents}
@@ -100,7 +105,6 @@ async function TrustLinkContent({
       />
 
       <PaymentNotice status={notice} />
-      {deal.state === "AUDITING" || deal.state === "ARBITRATING" ? <AuditWatcher /> : null}
 
       <section aria-labelledby="deal-title" className="space-y-3">
         <p className="text-[0.8125rem] font-medium text-ink-muted">Trust Link</p>

@@ -6,7 +6,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
 import { AiRetakeRequest } from "@/components/ai-retake-request";
 import { AuditReport } from "@/components/audit-report";
-import { AuditWatcher } from "@/components/audit-watcher";
+import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
 import { RoleSwitcher } from "@/components/role-switcher";
@@ -17,6 +17,7 @@ import { isSupabaseConfigured } from "@/lib/db/server";
 import { holdingSlipDeadline } from "@/lib/deals/deadline";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
+import { isWaitingOnSystem } from "@/lib/state-machine/presentation";
 
 export default function SellerDealPage({ params }: PageProps<"/seller/[id]">) {
   return (
@@ -58,6 +59,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
 
   return (
     <div className="mt-4 space-y-8">
+      <DealLiveUpdates dealId={deal.id} waiting={isWaitingOnSystem(deal.state)} />
       <RoleSwitcher dealId={deal.id} state={deal.state} active="seller" />
       <HoldingSlip
         amountCents={deal.priceCents}
@@ -96,13 +98,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
 
       {canUpload ? <EvidenceUploadForm dealId={deal.id} /> : null}
 
-      {deal.state === "AUDITING" ? (
-        <>
-          <AuditWatcher />
-          <AuditRunning />
-        </>
-      ) : null}
-      {deal.state === "ARBITRATING" ? <AuditWatcher /> : null}
+      {deal.state === "AUDITING" ? <AuditRunning /> : null}
 
       {!canUpload && sellerEvidence.some((item) => item.status === "uploaded") ? (
         <section aria-labelledby="evidence-heading" className="space-y-4">
