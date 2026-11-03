@@ -119,11 +119,15 @@ async function findPayment(event: PayPalWebhookEvent): Promise<PaymentLookup> {
   const orderId = orderIdFromResource(resource);
 
   if (isCaptureEvent(event.eventType)) {
-    const captureId = resource.id;
+    // PAYMENT.CAPTURE.REFUNDED carries the refund, so its id is our refund id.
+    const resourceId = resource.id;
     let row: PaymentRow | null = null;
 
-    if (captureId) {
-      row = await findPaymentRowBy("paypal_capture_id", captureId);
+    if (resourceId && event.eventType === "PAYMENT.CAPTURE.REFUNDED") {
+      row = await findPaymentRowBy("paypal_refund_id", resourceId);
+    }
+    if (!row && resourceId) {
+      row = await findPaymentRowBy("paypal_capture_id", resourceId);
     }
     if (!row && orderId) {
       row = await findPaymentRowBy("paypal_order_id", orderId);
