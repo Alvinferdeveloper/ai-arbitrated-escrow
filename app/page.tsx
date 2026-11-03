@@ -6,7 +6,7 @@ import { HoldingSlip } from "@/components/holding-slip";
 import { StateStamp } from "@/components/state-stamp";
 import { ButtonLink } from "@/components/ui/button";
 import { DEMO_DEALS } from "@/demo/data";
-import { APP_NAME } from "@/lib/config";
+import { APP_NAME, DEMO_MODE } from "@/lib/config";
 import { getDealStates } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import { formatMoney } from "@/lib/deals/money";
@@ -26,6 +26,29 @@ const FEARS = [
   {
     who: "The seller",
     fear: "ships first and faces a buyer who swears the parcel arrived empty.",
+  },
+];
+
+const TRY_IT = [
+  {
+    title: "Create a deal as the seller",
+    body: "Open Create a deal, press Use the sample listing, then create it.",
+  },
+  {
+    title: "Pay as the buyer",
+    body: "Open the Trust Link and pay with PayPal, using the sandbox buyer shown on the page.",
+  },
+  {
+    title: "Send the evidence",
+    body: "Switch to the seller view, load a sample evidence set and send it for audit.",
+  },
+  {
+    title: "Watch the AI decide",
+    body: "In about 20 seconds it ships the deal, asks for a specific retake, or refunds the buyer. Try each sample set.",
+  },
+  {
+    title: "Optional: dispute as the buyer",
+    body: "On a shipped deal, report a problem with a sample unboxing photo and see the AI arbitrate.",
   },
 ];
 
@@ -114,6 +137,37 @@ export default function Home() {
             if the buyer disputes, and hands every unclear case to a person.
           </p>
         </section>
+
+        {DEMO_MODE ? (
+          <section aria-labelledby="try-heading" className="mt-14">
+            <h2
+              id="try-heading"
+              className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+            >
+              Try it in three minutes
+            </h2>
+            <p className="mt-2 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+              No sign-up and no photos to take. You play every role, and the AI checks
+              every photo for real.
+            </p>
+            <ol className="mt-4 space-y-4 border-l border-rule-line pl-4">
+              {TRY_IT.map((step, index) => (
+                <li key={step.title}>
+                  <p className="text-[0.9375rem] font-medium text-ink">
+                    <span className="mr-2 font-mono tabular-nums text-ink-muted">{index + 1}.</span>
+                    {step.title}
+                  </p>
+                  <p className="mt-1 max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted">
+                    {step.body}
+                  </p>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-5">
+              <ButtonLink href="/seller">Start with a sample deal</ButtonLink>
+            </div>
+          </section>
+        ) : null}
 
         <div className="mt-14 space-y-3">
           <p className="text-[0.8125rem] font-medium text-ink-muted">

@@ -7,6 +7,7 @@ import { AuditReport } from "@/components/audit-report";
 import { AuditWatcher } from "@/components/audit-watcher";
 import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
 import { DisputeForm } from "@/components/buyer/dispute-form";
+import { SandboxBuyerNote } from "@/components/buyer/sandbox-buyer-note";
 import { StartCheckoutForm } from "@/components/buyer/start-checkout-form";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
@@ -20,7 +21,8 @@ import { getCapturePayment } from "@/lib/db/checkout-store";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { getDealSettlement } from "@/lib/db/dispute-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
-import { isPayPalConfigured } from "@/lib/paypal/config";
+import { getSandboxBuyer, isPayPalConfigured, type SandboxBuyer } from "@/lib/paypal/config";
+import { DEMO_MODE } from "@/lib/config";
 
 export default function TrustLinkPage({
   params,
@@ -130,6 +132,7 @@ async function TrustLinkContent({
         releaseEnabled={isSupabaseConfigured()}
         paymentInProgress={paymentInProgress}
         settlement={settlement}
+        sandboxBuyer={DEMO_MODE ? getSandboxBuyer() : null}
       />
 
       {unboxing ? (
@@ -274,12 +277,14 @@ function BuyerAction({
   releaseEnabled,
   paymentInProgress,
   settlement,
+  sandboxBuyer,
 }: {
   deal: DealView;
   checkoutEnabled: boolean;
   releaseEnabled: boolean;
   paymentInProgress: boolean;
   settlement: Settlement;
+  sandboxBuyer: SandboxBuyer | null;
 }) {
   if (deal.state === "AWAITING_PAYMENT") {
     return (
@@ -296,7 +301,10 @@ function BuyerAction({
             confirms the capture. Reload this page in a moment.
           </p>
         ) : checkoutEnabled ? (
-          <StartCheckoutForm dealId={deal.id} amountCents={deal.priceCents} />
+          <>
+            <StartCheckoutForm dealId={deal.id} amountCents={deal.priceCents} />
+            {sandboxBuyer ? <SandboxBuyerNote buyer={sandboxBuyer} /> : null}
+          </>
         ) : (
           <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
             {deal.seller.displayName} is waiting for the payment of{" "}

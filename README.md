@@ -89,6 +89,17 @@ refuses it, the deal goes to a person. The seller page and the Trust Link
 refresh every few seconds while the audit runs. `/api/cron/retry-audits`
 reruns audits whose background run died.
 
+### Judge path
+
+In demo mode the landing shows **Try it in three minutes**, and the Trust Link
+shows the sandbox buyer to pay with. Set `DEMO_PAYPAL_BUYER_EMAIL` and
+`DEMO_PAYPAL_BUYER_PASSWORD` to a sandbox personal account (never a real one).
+
+AI calls are capped per deal (`AI_AUDITS_PER_DEAL`, default 8) and across the
+app per hour (`AI_AUDITS_PER_HOUR`, default 60). There is no sign-in, so a
+per-visitor limit would be trivial to bypass; uploads past a cap get a 429 and
+nothing is stored.
+
 ### Sample evidence
 
 With `NEXT_PUBLIC_DEMO_MODE=true` the create-deal form offers **Use the sample
@@ -100,6 +111,8 @@ scenario only shows up once its photos exist:
 public/demo-evidence/honest/{A,B,C}.jpg             product, product in box, sealed parcel with a legible guide (about 0.7 to 0.9 kg)
 public/demo-evidence/wrong-weight/{A,B,C}.jpg       same A and B, guide shows a weight far too low (for example 0.2 kg)
 public/demo-evidence/different-product/{A,B,C}.jpg  A shows another product than the listing
+public/demo-evidence/unboxing-item-inside/D.jpg     opened parcel with the item inside (buyer lies)
+public/demo-evidence/unboxing-empty/D.jpg           opened parcel, empty (legitimate claim)
 ```
 
 The listing they match is `SAMPLE_LISTING` in `demo/sample-evidence.ts`. The

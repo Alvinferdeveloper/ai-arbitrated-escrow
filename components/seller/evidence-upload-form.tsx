@@ -8,7 +8,8 @@ import { uploadWithProgress } from "@/components/evidence/upload-with-progress";
 import { usePhotoSlots } from "@/components/evidence/use-photo-slots";
 import { Button } from "@/components/ui/button";
 import { EVIDENCE_UPLOAD_SLOTS } from "@/lib/deals/evidence-upload";
-import { SampleEvidencePicker } from "./sample-evidence-picker";
+import { SampleEvidencePicker } from "@/components/evidence/sample-evidence-picker";
+import { SAMPLE_SCENARIOS } from "@/demo/sample-evidence";
 
 export function EvidenceUploadForm({ dealId }: { dealId: string }) {
   const router = useRouter();
@@ -50,7 +51,12 @@ export function EvidenceUploadForm({ dealId }: { dealId: string }) {
         </p>
       </div>
 
-      <SampleEvidencePicker disabled={uploading} onLoad={photos.choose} />
+      <SampleEvidencePicker
+        scenarios={SAMPLE_SCENARIOS}
+        slots={EVIDENCE_UPLOAD_SLOTS}
+        disabled={uploading}
+        onLoad={photos.choose}
+      />
 
       <div className="grid gap-4 sm:grid-cols-3">
         {EVIDENCE_UPLOAD_SLOTS.map((slot) => (

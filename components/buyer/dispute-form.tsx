@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { PhotoInput, UploadProgress } from "@/components/evidence/photo-input";
 import { uploadWithProgress } from "@/components/evidence/upload-with-progress";
+import { SampleEvidencePicker } from "@/components/evidence/sample-evidence-picker";
 import { usePhotoSlots } from "@/components/evidence/use-photo-slots";
+import { UNBOXING_SCENARIOS } from "@/demo/sample-evidence";
 import { Button } from "@/components/ui/button";
 
 const SLOTS = ["D"] as const;
@@ -66,6 +68,16 @@ export function DisputeForm({ dealId, askReason }: { dealId: string; askReason: 
           />
         </div>
       ) : null}
+
+      <SampleEvidencePicker
+        scenarios={UNBOXING_SCENARIOS}
+        slots={SLOTS}
+        disabled={uploading}
+        onLoad={photos.choose}
+        onSelect={(scenario) => {
+          if (askReason && scenario.reason) setReason(scenario.reason);
+        }}
+      />
 
       <div className="max-w-sm">
         <PhotoInput

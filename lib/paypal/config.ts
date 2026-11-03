@@ -48,3 +48,12 @@ export function requirePayPalConfig(): PayPalConfig {
     baseUrl: "https://api-m.sandbox.paypal.com",
   };
 }
+
+export type SandboxBuyer = { email: string; password: string };
+
+/** The shared sandbox buyer judges pay with. Never a real account. */
+export function getSandboxBuyer(): SandboxBuyer | null {
+  const email = process.env.DEMO_PAYPAL_BUYER_EMAIL?.trim();
+  const password = process.env.DEMO_PAYPAL_BUYER_PASSWORD?.trim();
+  return email && password ? { email, password } : null;
+}

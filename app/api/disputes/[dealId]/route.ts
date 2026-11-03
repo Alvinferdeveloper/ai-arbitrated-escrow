@@ -6,6 +6,7 @@ import {
   removeEvidencePhotos,
   uploadEvidencePhoto,
 } from "@/lib/db/evidence-store";
+import { AI_QUOTA_MESSAGES, checkAiQuota } from "@/lib/db/ai-quota";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import { isEvidenceFileError, readEvidenceFile } from "@/lib/deals/evidence-file";
 import {
@@ -66,6 +67,9 @@ export async function POST(
   if (state !== "SHIPPED" && state !== "DISPUTED") {
     return fail(409, "not_open_to_dispute", "This deal cannot be disputed right now.");
   }
+
+  const quota = await checkAiQuota(dealId);
+  if (!quota.ok) return fail(429, quota.reason.toLowerCase(), AI_QUOTA_MESSAGES[quota.reason]);
 
   const reason = disputeReasonSchema.safeParse(form.get("reason") ?? "");
   if (state === "SHIPPED" && !reason.success) {

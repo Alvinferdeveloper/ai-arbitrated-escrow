@@ -20,8 +20,10 @@ export const EVIDENCE_DEADLINE_MS = DEMO_MODE ? 10 * 60 * 1000 : 3 * 24 * 60 * 6
 /** Zero in demo mode, so auto-release happens after the grace period alone. */
 export const DELIVERY_DAY_MS = DEMO_MODE ? 0 : 24 * 60 * 60 * 1000;
 
-/** Max AI calls per demo session (NFR9). */
-export const AI_CALLS_PER_SESSION = Number(process.env.AI_CALLS_PER_SESSION ?? 20);
+// AI cost limits (NFR9). There is no sign-in, so they count audits per deal and
+// across the whole app rather than per visitor.
+export const AI_AUDITS_PER_DEAL = Number(process.env.AI_AUDITS_PER_DEAL ?? 8);
+export const AI_AUDITS_PER_HOUR = Number(process.env.AI_AUDITS_PER_HOUR ?? 60);
 
 /** Images are resized in the browser to this long side before upload. */
 export const EVIDENCE_MAX_LONG_SIDE_PX = 1536;

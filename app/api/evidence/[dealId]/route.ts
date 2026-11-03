@@ -6,6 +6,7 @@ import {
   SupabaseEvidenceSubmissionStore,
   uploadEvidencePhoto,
 } from "@/lib/db/evidence-store";
+import { AI_QUOTA_MESSAGES, checkAiQuota } from "@/lib/db/ai-quota";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import {
   isEvidenceFileError,
@@ -74,6 +75,9 @@ export async function POST(
   if (state !== "FUNDS_HELD" && state !== "EVIDENCE_REJECTED") {
     return fail(409, "not_waiting_for_evidence", "This deal is not waiting for photos.");
   }
+
+  const quota = await checkAiQuota(dealId);
+  if (!quota.ok) return fail(429, quota.reason.toLowerCase(), AI_QUOTA_MESSAGES[quota.reason]);
 
   const prepared: PreparedEvidenceFile[] = [];
 
