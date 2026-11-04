@@ -14,7 +14,7 @@ import type { DealState } from "@/lib/state-machine/states";
 
 const SCENARIO_COPY = [
   "The evidence passes, tracking is attached, and the money releases after receipt or the deadline.",
-  "The guide says 0.4 kg. That is too light for the product, so shipping is blocked.",
+  "The guide says 0.4 kg. That is too light for the product, so the AI asks for a new guide photo.",
   "The buyer disputes the delivery. The AI compares both sides' photos, they contradict each other, so a mediator decides.",
 ];
 
@@ -67,7 +67,7 @@ const STEPS = [
   },
   {
     title: "The money moves last",
-    body: "On receipt or after the deadline, the seller is paid. A dispute goes through arbitration, and a person decides the doubtful cases.",
+    body: "On receipt or after the deadline, the seller is paid. In a dispute the AI compares both sides; only evidence that contradicts itself goes to a person.",
   },
 ];
 
@@ -86,7 +86,8 @@ export default function Home() {
         </h1>
         <p className="mt-4 max-w-[65ch] text-[1.0625rem] leading-[1.55] text-ink">
           We hold the buyer&apos;s payment, audit the seller&apos;s photos and shipping guide, and
-          release the money when the parcel arrives. If a rule fires, a person decides.
+          release the money when the parcel arrives. The AI ships, asks for new photos or refunds on
+          its own; a person only sees evidence that contradicts itself.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -134,7 +135,8 @@ export default function Home() {
           <p className="mt-3 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
             <span className="font-medium">{APP_NAME} is the missing safety net:</span> it
             holds the money, checks the parcel photos before shipping, compares them again
-            if the buyer disputes, and hands every unclear case to a person.
+            if the buyer disputes, and hands a person only the cases where the two sides
+            contradict each other.
           </p>
         </section>
 

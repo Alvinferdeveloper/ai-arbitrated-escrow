@@ -7,10 +7,11 @@ export function formatDeadline(
   deadline: Date,
   now: Date = new Date(),
   label = "Auto-release",
+  passed = `${label} deadline passed`,
 ): string {
   const remaining = deadline.getTime() - now.getTime();
 
-  if (remaining <= 0) return `${label} deadline passed`;
+  if (remaining <= 0) return passed;
   if (remaining < MINUTE_MS) return `${label} in under a minute`;
 
   const days = Math.floor(remaining / DAY_MS);
@@ -27,7 +28,12 @@ export function holdingSlipDeadline(
   deal: { evidenceDueAt: Date | null; autoReleaseAt: Date | null },
   now: Date = new Date(),
 ): string | undefined {
-  if (deal.evidenceDueAt) return formatDeadline(deal.evidenceDueAt, now, "Evidence due");
-  if (deal.autoReleaseAt) return formatDeadline(deal.autoReleaseAt, now);
+  // Past the deadline the cron acts within minutes; say what happens next.
+  if (deal.evidenceDueAt) {
+    return formatDeadline(deal.evidenceDueAt, now, "Evidence due", "Evidence deadline passed, refund starting");
+  }
+  if (deal.autoReleaseAt) {
+    return formatDeadline(deal.autoReleaseAt, now, "Auto-release", "Auto-release due, payout starting");
+  }
   return undefined;
 }

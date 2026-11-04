@@ -14,7 +14,7 @@ export default function MediatorLayout({ children }: { children: ReactNode }) {
               Mediation desk
             </p>
             <p className="mt-1 text-[0.875rem] leading-[1.55] text-ink">
-              Only deals where a rule fired appear here. The money stays held.
+              Only the cases the AI could not settle appear here. The money stays held.
             </p>
             <nav aria-label="Mediator" className="mt-4">
               <Link

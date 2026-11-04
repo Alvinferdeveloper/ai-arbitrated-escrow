@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDeadline } from "./deadline";
+import { formatDeadline, holdingSlipDeadline } from "./deadline";
 
 const now = new Date("2026-10-29T12:00:00.000Z");
 
@@ -30,5 +30,23 @@ describe("formatDeadline", () => {
     expect(formatDeadline(inMs(30 * 1000), now)).toBe("Auto-release in under a minute");
     expect(formatDeadline(inMs(-1), now)).toBe("Auto-release deadline passed");
     expect(formatDeadline(now, now)).toBe("Auto-release deadline passed");
+  });
+});
+
+describe("holdingSlipDeadline", () => {
+  it("says what happens once a deadline has passed", () => {
+    expect(holdingSlipDeadline({ evidenceDueAt: inMs(-1), autoReleaseAt: null }, now)).toBe(
+      "Evidence deadline passed, refund starting",
+    );
+    expect(holdingSlipDeadline({ evidenceDueAt: null, autoReleaseAt: inMs(-1) }, now)).toBe(
+      "Auto-release due, payout starting",
+    );
+  });
+
+  it("prefers the evidence deadline and has none otherwise", () => {
+    expect(
+      holdingSlipDeadline({ evidenceDueAt: inMs(60_000), autoReleaseAt: inMs(120_000) }, now),
+    ).toBe("Evidence due in 1m");
+    expect(holdingSlipDeadline({ evidenceDueAt: null, autoReleaseAt: null }, now)).toBeUndefined();
   });
 });

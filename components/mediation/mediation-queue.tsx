@@ -78,8 +78,8 @@ function EmptyQueue() {
       />
       <h2 className="mt-3 text-[1rem] font-medium text-ink">No cases waiting</h2>
       <p className="mx-auto mt-1 max-w-[46ch] text-[0.875rem] leading-[1.55] text-ink-muted">
-        A deal appears here only when a rule, a technical failure or an out-of-band
-        reversal sends it to a person. The money stays held until then.
+        A deal appears here only when the AI cannot settle it: contradicting evidence,
+        an audit that failed twice, or a reversed payment.
       </p>
     </div>
   );

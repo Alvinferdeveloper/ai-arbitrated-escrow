@@ -125,9 +125,9 @@ async function TrustLinkContent({
 
       <section className="rounded-lg border border-rule-line bg-kraft p-4">
         <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
-          We are holding {formatMoney(deal.priceCents)} until you confirm the parcel
-          arrived. If something is wrong, you can open a dispute before the deadline.
-          No money moves on its own while a rule or a person is reviewing the case.
+          {deal.state === "AWAITING_PAYMENT"
+            ? `When you pay, we hold ${formatMoney(deal.priceCents)} instead of the seller. They are paid only after you confirm the parcel arrived or the deadline passes; if their evidence fails, the AI refunds you.`
+            : `We are holding ${formatMoney(deal.priceCents)} until you confirm the parcel arrived. If something is wrong, open a dispute before the deadline. Every decision is written in the record below.`}
         </p>
       </section>
 

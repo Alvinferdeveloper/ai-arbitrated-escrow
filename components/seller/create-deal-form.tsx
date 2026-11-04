@@ -9,6 +9,8 @@ import { SAMPLE_LISTING } from "@/demo/sample-evidence";
 import type { ListingDraft } from "@/lib/agents/listing";
 import { ScreenshotImport } from "./screenshot-import";
 import { DEMO_MODE, MAX_DELIVERY_ESTIMATE_DAYS } from "@/lib/config";
+import { ESCALATION_RULES } from "@/lib/agents/rules.config";
+import { formatMoney } from "@/lib/deals/money";
 
 const FIELD =
   "w-full rounded-md border border-rule-line bg-sheet text-[1rem] text-ink placeholder:text-ink-muted focus:outline-none focus:border-postal-ink focus:ring-2 focus:ring-postal-ink focus:ring-offset-2 focus:ring-offset-paper disabled:bg-kraft disabled:text-ink-muted aria-[invalid=true]:border-blocked aria-[invalid=true]:ring-blocked";
@@ -229,7 +231,8 @@ export function CreateDealForm({
             message={state.fieldErrors.priceUsd}
           />
           <p id="priceUsd-hint" className={HINT}>
-            In USD. Larger deals get a person&apos;s review before shipping.
+            In USD. Above {formatMoney(ESCALATION_RULES.highValueReviewAboveCents)} the AI also
+            asks for a legible serial number in photo A.
           </p>
         </div>
 

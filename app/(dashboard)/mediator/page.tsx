@@ -16,8 +16,9 @@ export default async function MediatorQueuePage() {
           Mediation queue
         </h1>
         <p className="mt-3 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
-          Only deals where a rule, a technical failure or an out-of-band reversal
-          fired. The money stays held while a person reviews the evidence.
+          The cases the AI could not settle: evidence that contradicts itself, an audit
+          that failed twice, or a payment reversed outside the deal. The money stays held
+          until you decide.
         </p>
       </header>
 
