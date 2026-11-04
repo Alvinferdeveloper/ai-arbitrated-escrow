@@ -2,6 +2,7 @@ import type { EvidenceSlot } from "@/lib/deals/types";
 
 // Real photos, not canned results: they go through the same upload and audit
 // as anything a user sends. Files live in public/demo-evidence/<id>/<slot>.jpg.
+// Photos A and C show DEMO_SAMPLE_VERIFICATION_CODE handwritten on paper.
 
 export const SAMPLE_LISTING = {
   title: "Sony WH-1000XM4 headphones, black",

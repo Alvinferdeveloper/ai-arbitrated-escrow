@@ -8,7 +8,7 @@ export const EVIDENCE_SLOT_COPY: Record<
 > = {
   A: {
     title: "The product",
-    description: "A clear photo of the item being sold, with any marks visible.",
+    description: "A clear photo of the item being sold, with the verification code on paper beside it.",
   },
   B: {
     title: "Product in packing",
@@ -16,7 +16,7 @@ export const EVIDENCE_SLOT_COPY: Record<
   },
   C: {
     title: "Sealed parcel and guide",
-    description: "The closed parcel next to the shipping guide, both readable.",
+    description: "The closed parcel with the shipping guide readable and the verification code on top.",
   },
   D: {
     title: "Unboxing",

@@ -3,6 +3,7 @@ import type { EvidenceAuditDecision } from "@/lib/agents/audit";
 import type { AuditSubject, EvidenceAuditJobStore } from "@/lib/agents/evidence-audit-job";
 import { EVIDENCE_PHOTO_SLOTS, type EvidenceImage, type EvidencePhotoSlot } from "@/lib/agents/ports";
 import { EVIDENCE_AUDIT_PROMPT_VERSION } from "@/lib/agents/prompts";
+import type { EvidenceRuleContext } from "@/lib/agents/rules";
 import { ESCALATION_RULES } from "@/lib/agents/rules.config";
 import type { EvidenceMediaType } from "@/lib/deals/evidence-upload";
 import type {
@@ -146,6 +147,70 @@ type AuditSubjectDealRow = {
   price_cents: number;
 };
 
+type RuleContextDealRow = {
+  price_cents: number;
+  created_at: string;
+  verification_code: string | null;
+  is_sample: boolean;
+};
+
+type EvidenceSignalRow = {
+  type: EvidencePhotoSlot;
+  sha256: string;
+  exif: Record<string, string | number | boolean | null>;
+};
+
+/** What the rules need beyond the model's findings. */
+export async function loadEvidenceRuleContext(dealId: string): Promise<EvidenceRuleContext> {
+  const admin = getSupabaseAdmin();
+
+  const [{ data: deal, error: dealError }, { data: photos, error: photosError }] =
+    await Promise.all([
+      admin
+        .from("deals")
+        .select("price_cents, created_at, verification_code, is_sample")
+        .eq("id", dealId)
+        .single<RuleContextDealRow>(),
+      admin
+        .from("evidence")
+        .select("type, sha256, exif")
+        .eq("deal_id", dealId)
+        .in("type", [...EVIDENCE_PHOTO_SLOTS])
+        .is("superseded_at", null)
+        .returns<EvidenceSignalRow[]>(),
+    ]);
+
+  if (dealError) throw new Error(`Could not load the deal: ${dealError.message}`);
+  if (photosError) throw new Error(`Could not load the evidence: ${photosError.message}`);
+
+  const context = { priceCents: deal.price_cents, verificationCode: deal.verification_code };
+  // Sample photos are shot in advance and shared by every demo deal.
+  if (deal.is_sample) return { ...context, freshness: null };
+
+  const hashes = (photos ?? []).map((photo) => photo.sha256);
+  const { data: reused, error: reusedError } = await admin
+    .from("evidence")
+    .select("sha256")
+    .in("sha256", hashes)
+    .neq("deal_id", dealId)
+    .returns<{ sha256: string }[]>();
+
+  if (reusedError) throw new Error(`Could not check reused photos: ${reusedError.message}`);
+  const reusedHashes = new Set((reused ?? []).map((row) => row.sha256));
+
+  return {
+    ...context,
+    freshness: {
+      dealCreatedAt: new Date(deal.created_at),
+      photos: (photos ?? []).map((photo) => ({
+        slot: photo.type,
+        exif: photo.exif,
+        reusedInOtherDeal: reusedHashes.has(photo.sha256),
+      })),
+    },
+  };
+}
+
 export async function downloadEvidencePhoto(path: string): Promise<Uint8Array> {
   const { data, error } = await getSupabaseAdmin().storage.from(BUCKET).download(path);
   if (error || !data) {
@@ -216,6 +281,7 @@ export class SupabaseEvidenceAuditJobStore implements EvidenceAuditJobStore {
         priceCents: deal.price_cents,
       },
       images,
+      context: await loadEvidenceRuleContext(dealId),
     };
   }
 

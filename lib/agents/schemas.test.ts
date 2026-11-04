@@ -28,7 +28,9 @@ const validAudit = {
     trackingNumber: "1Z999AA10123456784",
     weightKg: 1.4,
     date: "2026-10-28",
+    dateIso: "2026-10-28",
   },
+  verification: { codeInPhotoA: null, codeInPhotoC: null },
   inconsistencies: [],
 };
 
@@ -48,6 +50,7 @@ describe("evidence audit schema", () => {
         trackingNumber: null,
         weightKg: null,
         date: null,
+        dateIso: null,
       },
     });
     expect(result.success).toBe(true);
@@ -227,5 +230,18 @@ describe("evidence audit schema, new findings", () => {
     const result = storedEvidenceAuditSchema.safeParse({ ...validAudit, product: legacyProduct });
     expect(result.success).toBe(true);
     expect(result.success && result.data.product.differentItem).toBe(false);
+  });
+
+  it("reads audits stored before the code and ISO date existed as null", () => {
+    const legacy: Record<string, unknown> = { ...validAudit, guide: { ...validAudit.guide } };
+    delete legacy.verification;
+    delete (legacy.guide as Record<string, unknown>).dateIso;
+    const result = storedEvidenceAuditSchema.safeParse(legacy);
+    expect(result.success).toBe(true);
+    expect(result.success && result.data.verification).toEqual({
+      codeInPhotoA: null,
+      codeInPhotoC: null,
+    });
+    expect(result.success && result.data.guide.dateIso).toBeNull();
   });
 });

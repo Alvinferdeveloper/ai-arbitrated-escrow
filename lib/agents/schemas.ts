@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const reasonSchema = z.string().trim().min(1).max(500);
 const guideFieldSchema = z.string().trim().min(1).max(80).nullable();
+const handwrittenCodeSchema = z.string().trim().min(1).max(20).nullable();
 
 export const evidenceAuditSchema = z
   .strictObject({
@@ -39,6 +40,13 @@ export const evidenceAuditSchema = z
     /** Weight printed on the guide, in kg. */
     weightKg: z.number().positive().finite().max(100).nullable(),
     date: guideFieldSchema,
+    /** The guide date as YYYY-MM-DD, or null when day and month order is ambiguous. */
+    dateIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  }),
+  /** Handwritten codes transcribed as seen. The model is never told the expected code. */
+  verification: z.strictObject({
+    codeInPhotoA: handwrittenCodeSchema,
+    codeInPhotoC: handwrittenCodeSchema,
   }),
   /** Material contradictions only. Cosmetic notes do not belong here. */
   inconsistencies: z.array(reasonSchema).max(10),
@@ -50,14 +58,21 @@ export const evidenceAuditSchema = z
 
 export type EvidenceAudit = z.infer<typeof evidenceAuditSchema>;
 
-/** Audits stored before differentItem and identifierVisible existed read as false. */
+function asObject(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+/** Audits stored before newer findings existed read them as false or null. */
 export const storedEvidenceAuditSchema = z.preprocess((value) => {
-  if (!value || typeof value !== "object" || !("product" in value)) return value;
-  const audit = value as { product?: unknown };
-  if (!audit.product || typeof audit.product !== "object") return value;
+  const audit = asObject(value);
+  const product = asObject(audit?.product);
+  if (!audit || !product) return value;
+  const guide = asObject(audit.guide);
   return {
+    verification: { codeInPhotoA: null, codeInPhotoC: null },
     ...audit,
-    product: { differentItem: false, identifierVisible: false, ...audit.product },
+    product: { differentItem: false, identifierVisible: false, ...product },
+    ...(guide ? { guide: { dateIso: null, ...guide } } : {}),
   };
 }, evidenceAuditSchema);
 

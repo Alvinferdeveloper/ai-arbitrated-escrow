@@ -20,6 +20,10 @@ export type Deal = {
   autoReleaseAt: Date | null;
   carrier: string | null;
   trackingNumber: string | null;
+  /** Handwritten by the seller in photos A and C; null on deals that predate it. */
+  verificationCode: string | null;
+  /** Demo deal started from the sample listing, whose photos were shot in advance. */
+  isSample: boolean;
   createdAt: Date;
 };
 
@@ -34,7 +38,7 @@ export type EvidenceView = {
   imageUrl: string | null;
 };
 
-export type AuditCheckResult = "cleared" | "blocked" | "flagged";
+export type AuditCheckResult = "cleared" | "blocked" | "flagged" | "skipped";
 
 export type AuditCheck = {
   id: string;

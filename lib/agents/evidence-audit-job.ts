@@ -1,6 +1,7 @@
 import type { DealState } from "@/lib/state-machine/states";
 import { auditEvidence, type EvidenceAuditDecision } from "./audit";
 import type { EvidenceAuditInput, EvidenceImage, VisionModel } from "./ports";
+import type { EvidenceRuleContext } from "./rules";
 
 // Safe to repeat: the claim is atomic and a deal that left AUDITING is never moved.
 
@@ -8,6 +9,7 @@ export type AuditSubject = {
   dealState: DealState;
   input: EvidenceAuditInput;
   images: EvidenceImage[];
+  context: EvidenceRuleContext;
 };
 
 export interface EvidenceAuditJobStore {
@@ -81,6 +83,7 @@ export async function runEvidenceAudit({
       model: handle.model,
       input: subject.input,
       images: subject.images,
+      context: subject.context,
     });
   } catch (error) {
     decision = technicalFailure(

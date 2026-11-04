@@ -4,7 +4,12 @@ import {
   type EvidenceImage,
   type VisionModel,
 } from "./ports";
-import { evaluateEvidenceRules, type EvidenceOutcome, type RetakeRequest } from "./rules";
+import {
+  evaluateEvidenceRules,
+  type EvidenceOutcome,
+  type EvidenceRuleContext,
+  type RetakeRequest,
+} from "./rules";
 import { ESCALATION_RULES, type EscalationRuleId } from "./rules.config";
 import { evidenceAuditSchema, type EvidenceAudit } from "./schemas";
 import { withTimeout } from "./timeout";
@@ -25,6 +30,8 @@ export type AuditEvidenceOptions = {
   model: VisionModel;
   input: EvidenceAuditInput;
   images: readonly EvidenceImage[];
+  /** Defaults to the price alone; the job passes the deal's fraud context. */
+  context?: EvidenceRuleContext;
   timeoutMs?: number;
 };
 
@@ -48,6 +55,7 @@ export async function auditEvidence({
   model,
   input,
   images,
+  context = { priceCents: input.priceCents },
   timeoutMs = ESCALATION_RULES.auditTimeoutMs,
 }: AuditEvidenceOptions): Promise<EvidenceAuditDecision> {
   if (!hasAllPhotos(images)) {
@@ -65,7 +73,7 @@ export async function auditEvidence({
 
       const parsed = evidenceAuditSchema.safeParse(raw);
       if (parsed.success) {
-        return evaluateEvidenceRules(parsed.data, { priceCents: input.priceCents });
+        return evaluateEvidenceRules(parsed.data, context);
       }
       lastError = "The model returned invalid evidence data";
     } catch (error) {

@@ -4,6 +4,7 @@ import {
   SupabaseEvidenceAuditJobStore,
   countEvidenceRejections,
   getLatestEvidenceAudit,
+  loadEvidenceRuleContext,
   type FinishedAuditRow,
 } from "@/lib/db/evidence-store";
 import { runAiRefund } from "@/lib/paypal/settlement-runner";
@@ -59,7 +60,7 @@ export async function settleFinishedAudit(row: FinishedAuditRow): Promise<boolea
 
   const parsed = storedEvidenceAuditSchema.safeParse(row.result);
   const decision: EvidenceAuditDecision = parsed.success
-    ? evaluateEvidenceRules(parsed.data, { priceCents: row.priceCents })
+    ? evaluateEvidenceRules(parsed.data, await loadEvidenceRuleContext(row.dealId))
     : {
         outcome: "ESCALATE",
         triggeredRules: ["TECHNICAL_FAILURE"],

@@ -85,6 +85,23 @@ turn its validated findings into one of these:
 | The third rejected upload | `REFUNDING` |
 | The model fails twice in a row | `ESCALATED` to a person, the only pre-shipment case that reaches one |
 
+### Fraud checks
+
+Besides the model's findings, the rules run checks that a scammer with stolen
+or recycled photos cannot pass. Each one asks for a specific retake, never a
+refund on its own:
+
+| Check | Rule | How |
+| --- | --- | --- |
+| Handwritten verification code in photos A and C | `VERIFICATION_CODE` | Every deal gets a random 4-character code (no 0/O, 1/I/L). The model transcribes any handwritten code it sees without being told the expected one; the rules compare. |
+| Guide printed before the deal | `GUIDE_PREDATES_DEAL` | The model returns the guide date as `YYYY-MM-DD` (null if day and month are ambiguous). |
+| Tracking number does not fit the carrier | `TRACKING_FORMAT` | Public formats for UPS, USPS, FedEx and DHL; other carriers are not checked. |
+| Photo already used in another deal | `REUSED_PHOTO` | Same SHA-256 in another deal's evidence. |
+| Photo taken before the deal | `OLD_PHOTO` | EXIF `DateTimeOriginal`, with one day of slack. Missing EXIF never counts against the seller. |
+| Edited photo | `EDITED_PHOTO` | EXIF `Software` names an editor such as Photoshop or Snapseed. |
+
+The audit report lists them as trust checks for both parties.
+
 The seller has `EVIDENCE_DEADLINE_MS` (3 days, 10 minutes in demo mode) from
 payment or from the last rejection to send valid photos;
 `/api/cron/expire-evidence` refunds the buyer when it passes. A refund the AI
@@ -126,6 +143,12 @@ public/demo-evidence/different-product/{A,B,C}.jpg  A shows another kind of prod
 public/demo-evidence/unboxing-item-inside/D.jpg     opened parcel with the item inside (buyer lies)
 public/demo-evidence/unboxing-empty/D.jpg           opened parcel, empty (legitimate claim)
 ```
+
+Photos A and C of every seller scenario must show the code `K7P4`
+(`DEMO_SAMPLE_VERIFICATION_CODE`) handwritten on paper. A deal started from the
+sample listing is stored with `is_sample` and that code, and skips the
+freshness checks (photo age, reuse, guide date), because the samples are shot
+once and reused by every demo deal.
 
 The listing they match is `SAMPLE_LISTING` in `demo/sample-evidence.ts`. The
 audit compares the guide weight with the model's estimate for the product with

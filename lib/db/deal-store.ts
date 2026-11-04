@@ -2,7 +2,7 @@ import "server-only";
 import { toAuditReportView } from "@/lib/agents/report";
 import { z } from "zod";
 import { storedEvidenceAuditSchema } from "@/lib/agents/schemas";
-import { EVIDENCE_DEADLINE_MS } from "@/lib/config";
+import { DEMO_SAMPLE_VERIFICATION_CODE, EVIDENCE_DEADLINE_MS } from "@/lib/config";
 import { EVIDENCE_SLOT_COPY } from "@/lib/deals/evidence";
 import { usdToCents } from "@/lib/deals/money";
 import type {
@@ -95,6 +95,16 @@ export async function createDeal(data: CreateDealData): Promise<string> {
   return dealId;
 }
 
+/** Demo only: the sample photos carry a fixed code and were shot in advance. */
+export async function markSampleDeal(dealId: string): Promise<void> {
+  const { error } = await getSupabaseAdmin()
+    .from("deals")
+    .update({ is_sample: true, verification_code: DEMO_SAMPLE_VERIFICATION_CODE })
+    .eq("id", dealId);
+
+  if (error) throw new Error(`Could not mark the sample deal: ${error.message}`);
+}
+
 type UserOptionRow = {
   id: string;
   display_name: string;
@@ -141,6 +151,8 @@ type DealRow = {
   auto_release_at: string | null;
   carrier: string | null;
   tracking_number: string | null;
+  verification_code: string | null;
+  is_sample: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -286,7 +298,7 @@ export async function getTrustLinkDeal(
   const { data: deal, error: dealError } = await admin
     .from("deals")
     .select(
-      "id, seller_id, buyer_id, title, description, price_cents, state, delivery_estimate_days, auto_release_at, carrier, tracking_number, created_at, updated_at",
+      "id, seller_id, buyer_id, title, description, price_cents, state, delivery_estimate_days, auto_release_at, carrier, tracking_number, verification_code, is_sample, created_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle<DealRow>();
@@ -341,7 +353,10 @@ export async function getTrustLinkDeal(
     : null;
   const auditView: AuditReportView | null =
     parsedAudit?.success === true
-      ? toAuditReportView(parsedAudit.data, audit?.triggered_rules ?? [])
+      ? toAuditReportView(parsedAudit.data, audit?.triggered_rules ?? [], {
+          verificationCode: deal.verification_code,
+          isSample: deal.is_sample,
+        })
       : null;
 
   const rows = evidenceRows ?? [];
@@ -375,6 +390,8 @@ export async function getTrustLinkDeal(
     autoReleaseAt: deal.auto_release_at ? new Date(deal.auto_release_at) : null,
     carrier: deal.carrier,
     trackingNumber: deal.tracking_number,
+    verificationCode: deal.verification_code,
+    isSample: deal.is_sample,
     createdAt: new Date(deal.created_at),
   };
 

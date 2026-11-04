@@ -25,7 +25,9 @@ const honestAudit: EvidenceAudit = {
     trackingNumber: "1Z999AA10123456784",
     weightKg: 1.4,
     date: "2026-10-28",
+    dateIso: "2026-10-28",
   },
+  verification: { codeInPhotoA: null, codeInPhotoC: null },
   inconsistencies: [],
 };
 
@@ -33,11 +35,15 @@ describe("toAuditReportView", () => {
   it("writes a complete report for an honest audit", () => {
     const report = toAuditReportView(honestAudit, []);
 
-    expect(report.checks.map((check) => check.result)).toEqual([
-      "cleared",
-      "cleared",
-      "cleared",
-      "cleared",
+    expect(report.checks.every((check) => check.result === "cleared")).toBe(true);
+    expect(report.checks.map((check) => check.id)).toEqual([
+      "product",
+      "packing",
+      "parcel",
+      "guide",
+      "original",
+      "guide-date",
+      "tracking-format",
     ]);
     expect(report.guide).toEqual({
       carrier: "UPS",
@@ -64,6 +70,7 @@ describe("toAuditReportView", () => {
           trackingNumber: null,
           weightKg: null,
           date: null,
+          dateIso: null,
         },
       },
       ["UNREADABLE_GUIDE"],
@@ -85,5 +92,33 @@ describe("toAuditReportView", () => {
     expect(report.checks.find((check) => check.id === "packing")?.result).toBe(
       "blocked",
     );
+  });
+
+  it("shows the verification code check only when the deal has a code", () => {
+    const cleared = toAuditReportView(honestAudit, [], { verificationCode: "K7P4", isSample: false });
+    expect(cleared.checks.find((check) => check.id === "code")).toMatchObject({
+      result: "cleared",
+    });
+
+    const blocked = toAuditReportView(honestAudit, ["VERIFICATION_CODE"], {
+      verificationCode: "K7P4",
+      isSample: false,
+    });
+    expect(blocked.checks.find((check) => check.id === "code")?.result).toBe("blocked");
+  });
+
+  it("flags the photo and guide checks from their rules", () => {
+    const report = toAuditReportView(honestAudit, ["REUSED_PHOTO", "GUIDE_PREDATES_DEAL"]);
+    expect(report.checks.find((check) => check.id === "original")).toMatchObject({
+      result: "flagged",
+      detail: "Photo used in another deal.",
+    });
+    expect(report.checks.find((check) => check.id === "guide-date")?.result).toBe("flagged");
+  });
+
+  it("says freshness was not checked on sample deals", () => {
+    const report = toAuditReportView(honestAudit, [], { verificationCode: "K7P4", isSample: true });
+    expect(report.checks.find((check) => check.id === "original")?.result).toBe("skipped");
+    expect(report.checks.find((check) => check.id === "guide-date")?.result).toBe("skipped");
   });
 });

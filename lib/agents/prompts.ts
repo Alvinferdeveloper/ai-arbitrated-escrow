@@ -1,7 +1,7 @@
 import { formatMoney } from "@/lib/deals/money";
 import type { ArbitrationInput, EvidenceAuditInput } from "./ports";
 
-export const EVIDENCE_AUDIT_PROMPT_VERSION = "evidence-audit-v2";
+export const EVIDENCE_AUDIT_PROMPT_VERSION = "evidence-audit-v3";
 
 export const EVIDENCE_AUDIT_SYSTEM = `You audit evidence for an escrow sale.
 You report what you can see; explicit rules turn your findings into the decision.
@@ -26,6 +26,16 @@ expectedWeightKg is the normal shipping weight of the listed product with its
 packing, in kilograms. Use your best conservative estimate; the rules compare it
 with the weight printed on the guide using a 25% tolerance.
 
+guide.date is the date exactly as printed. guide.dateIso is the same date as
+YYYY-MM-DD, or null when it is not legible or the order of day and month is
+ambiguous (03/11/2026 with no other clue).
+
+The seller is asked to write a short code on a piece of paper and place it in
+photos A and C. Copy the handwritten code you see in each photo exactly, letter
+by letter, into verification.codeInPhotoA and verification.codeInPhotoC. Return
+null when there is no handwritten code or it is not fully legible. A code printed
+on the product, the box or the guide is not the handwritten code.
+
 inconsistencies must contain only material contradictions between the listing,
 the three photos and the guide. Do not list cosmetic notes, lighting or minor
 wear that the listing already mentions.`;
@@ -48,7 +58,8 @@ Answer these questions:
 2. Does photo B show that product inside the packing?
 3. Does photo C show a sealed parcel and a visible shipping guide?
 4. Read the guide: carrier, tracking number, recorded weight in kg and date.
-5. List only material inconsistencies between the listing, the photos and the guide.
+5. Copy the handwritten code on paper in photo A and in photo C, if any.
+6. List only material inconsistencies between the listing, the photos and the guide.
 
 The deal rules, not your confidence, decide what happens next. Return the
 structured object only.`;

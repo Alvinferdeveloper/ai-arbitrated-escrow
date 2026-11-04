@@ -26,7 +26,9 @@ const honestAudit: EvidenceAudit = {
     trackingNumber: "1Z999AA10123456784",
     weightKg: 1.4,
     date: "2026-10-28",
+    dateIso: "2026-10-28",
   },
+  verification: { codeInPhotoA: null, codeInPhotoC: null },
   inconsistencies: [],
 };
 
@@ -89,7 +91,14 @@ describe("evidence rules", () => {
   it("asks for a legible guide when it is unreadable, incomplete or hidden", () => {
     for (const audit of [
       withAudit({
-        guide: { readable: false, carrier: null, trackingNumber: null, weightKg: null, date: null },
+        guide: {
+          readable: false,
+          carrier: null,
+          trackingNumber: null,
+          weightKg: null,
+          date: null,
+          dateIso: null,
+        },
       }),
       withAudit({ guide: { ...honestAudit.guide, trackingNumber: null } }),
       withAudit({ parcel: { ...honestAudit.parcel, guideVisible: false } }),
@@ -109,6 +118,7 @@ describe("evidence rules", () => {
         trackingNumber: "1Z999AA10123456784",
         weightKg: null,
         date: "2026-10-28",
+        dateIso: "2026-10-28",
       }),
     ).toEqual(["carrier", "weightKg"]);
   });
@@ -165,5 +175,94 @@ describe("evidence rules", () => {
   it("counts only amounts strictly above the threshold as high value", () => {
     expect(isHighValue(50_000, 50_000)).toBe(false);
     expect(isHighValue(50_001, 50_000)).toBe(true);
+  });
+
+  describe("fraud checks", () => {
+    const dealCreatedAt = new Date("2026-11-03T15:00:00Z");
+    const freshAudit = withAudit({
+      guide: { ...honestAudit.guide, date: "2026-11-03", dateIso: "2026-11-03" },
+      verification: { codeInPhotoA: "K7P4", codeInPhotoC: "k7-p4" },
+    });
+    const photo = (slot: "A" | "B" | "C", changes = {}) => ({
+      slot,
+      exif: { DateTimeOriginal: "2026-11-03T16:00:00.000Z" },
+      reusedInOtherDeal: false,
+      ...changes,
+    });
+    const context = {
+      priceCents: ORDINARY_PRICE_CENTS,
+      verificationCode: "K7P4",
+      freshness: { dealCreatedAt, photos: [photo("A"), photo("B"), photo("C")] },
+    };
+
+    it("passes fresh evidence with the code in photos A and C", () => {
+      expect(evaluateWithContext(freshAudit, context)).toMatchObject({
+        outcome: "PASS",
+        triggeredRules: [],
+      });
+    });
+
+    it("asks for the code in each photo where it is missing", () => {
+      const decision = evaluateWithContext(
+        withAudit({ ...freshAudit, verification: { codeInPhotoA: null, codeInPhotoC: "K7P4" } }),
+        context,
+      );
+      expect(decision.outcome).toBe("RETAKE");
+      expect(decision.triggeredRules).toEqual(["VERIFICATION_CODE"]);
+      expect(decision.retakes).toHaveLength(1);
+      expect(decision.retakes[0]).toMatchObject({ slot: "A" });
+      expect(decision.retakes[0].instruction).toContain("K7P4");
+    });
+
+    it("skips the code check on deals without a code", () => {
+      const decision = evaluateWithContext(
+        withAudit({ ...freshAudit, verification: { codeInPhotoA: null, codeInPhotoC: null } }),
+        { ...context, verificationCode: null },
+      );
+      expect(decision.outcome).toBe("PASS");
+    });
+
+    it("asks for a new guide when it predates the deal", () => {
+      const decision = evaluateWithContext(
+        withAudit({ ...freshAudit, guide: { ...freshAudit.guide, dateIso: "2026-10-20" } }),
+        context,
+      );
+      expect(decision.triggeredRules).toEqual(["GUIDE_PREDATES_DEAL"]);
+      expect(decision.retakes.map((retake) => retake.slot)).toEqual(["C"]);
+    });
+
+    it("asks for a sharper guide when the tracking number does not fit the carrier", () => {
+      const decision = evaluateWithContext(
+        withAudit({ ...freshAudit, guide: { ...freshAudit.guide, trackingNumber: "12345" } }),
+        context,
+      );
+      expect(decision.triggeredRules).toEqual(["TRACKING_FORMAT"]);
+      expect(decision.retakes.map((retake) => retake.slot)).toEqual(["C"]);
+    });
+
+    it("asks for new photos when they were reused, old or edited", () => {
+      const decision = evaluateWithContext(freshAudit, {
+        ...context,
+        freshness: {
+          dealCreatedAt,
+          photos: [
+            photo("A", { reusedInOtherDeal: true }),
+            photo("B", { exif: { DateTimeOriginal: "2026-08-01T10:00:00.000Z" } }),
+            photo("C", { exif: { Software: "Adobe Photoshop 25.0" } }),
+          ],
+        },
+      });
+      expect(decision.outcome).toBe("RETAKE");
+      expect(decision.triggeredRules).toEqual(["REUSED_PHOTO", "OLD_PHOTO", "EDITED_PHOTO"]);
+      expect(decision.retakes.map((retake) => retake.slot)).toEqual(["A", "B", "C"]);
+    });
+
+    it("skips freshness on sample deals but still checks the code", () => {
+      const decision = evaluateWithContext(
+        withAudit({ ...freshAudit, guide: { ...freshAudit.guide, dateIso: "2026-01-01" } }),
+        { ...context, freshness: null },
+      );
+      expect(decision.outcome).toBe("PASS");
+    });
   });
 });

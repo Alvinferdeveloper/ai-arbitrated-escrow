@@ -18,7 +18,9 @@ const audit: EvidenceAudit = {
     trackingNumber: "1Z999AA10123456784",
     weightKg: 1.4,
     date: "2026-10-28",
+    dateIso: "2026-10-28",
   },
+  verification: { codeInPhotoA: null, codeInPhotoC: null },
   inconsistencies: [],
 };
 
@@ -32,6 +34,7 @@ const subject: AuditSubject = {
   dealState: "AUDITING",
   input: { title: "Headphones", description: "Black", priceCents: 3750 },
   images: [image("A"), image("B"), image("C")],
+  context: { priceCents: 3750 },
 };
 
 function makeStore(overrides: Partial<EvidenceAuditJobStore> = {}) {

@@ -2,11 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { DEMO_MODE } from "@/lib/config";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import {
   DealPartyNotFoundError,
   InvalidDealError,
   createDeal,
+  markSampleDeal,
 } from "@/lib/db/deal-store";
 import { createDealSchema } from "@/lib/deals/schema";
 
@@ -105,6 +107,7 @@ export async function createDealAction(
 
   try {
     dealId = await createDeal(parsed.data);
+    if (DEMO_MODE && formData.get("sample") === "1") await markSampleDeal(dealId);
   } catch (error) {
     if (error instanceof DealPartyNotFoundError) {
       return {

@@ -38,6 +38,8 @@ type DealRow = {
   updated_at: string;
   /** Only selected by the case loader. */
   shipped_at?: string | null;
+  verification_code?: string | null;
+  is_sample?: boolean;
 };
 
 type UserRow = {
@@ -347,7 +349,7 @@ export async function getMediationCase(
   const { data: deal, error } = await admin
     .from("deals")
     .select(
-      "id, seller_id, buyer_id, title, price_cents, state, created_at, updated_at, shipped_at",
+      "id, seller_id, buyer_id, title, price_cents, state, created_at, updated_at, shipped_at, verification_code, is_sample",
     )
     .eq("id", id)
     .maybeSingle<DealRow>();
@@ -443,7 +445,10 @@ export async function getMediationCase(
     : null;
   const auditView: AuditReportView | null =
     parsedAudit?.success === true
-      ? toAuditReportView(parsedAudit.data, audit?.triggered_rules ?? [])
+      ? toAuditReportView(parsedAudit.data, audit?.triggered_rules ?? [], {
+          verificationCode: deal.verification_code ?? null,
+          isSample: deal.is_sample ?? false,
+        })
       : null;
 
   const evidenceRows = evidence ?? [];

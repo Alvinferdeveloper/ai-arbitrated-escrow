@@ -1,3 +1,11 @@
+import {
+  codeMatches,
+  guidePredatesDeal,
+  isEditedPhoto,
+  isOldPhoto,
+  trackingFitsCarrier,
+  type PhotoExif,
+} from "./fraud-signals";
 import type { EvidencePhotoSlot } from "./ports";
 import {
   ESCALATION_RULES,
@@ -54,8 +62,19 @@ export function isHighValue(
   return priceCents > thresholdCents;
 }
 
+export type PhotoSignal = {
+  slot: EvidencePhotoSlot;
+  exif: PhotoExif;
+  /** The same file was submitted in another deal. */
+  reusedInOtherDeal: boolean;
+};
+
 export type EvidenceRuleContext = {
   priceCents: number;
+  /** Code the seller must handwrite in photos A and C; null skips the check. */
+  verificationCode?: string | null;
+  /** Null when the photos were taken in advance, as with the demo samples. */
+  freshness?: { dealCreatedAt: Date; photos: readonly PhotoSignal[] } | null;
 };
 
 function addRule(rules: EscalationRuleId[], rule: EscalationRuleId): void {
@@ -96,6 +115,46 @@ export function evaluateEvidenceRules(
   if (!audit.parcel.guideVisible || missingGuideFields(audit.guide).length > 0) {
     addRule(triggeredRules, "UNREADABLE_GUIDE");
     instructions.C.push("make the carrier, tracking number, weight and date on the guide fully legible");
+  }
+
+  const code = context.verificationCode;
+  if (code && !codeMatches(audit.verification.codeInPhotoA, code)) {
+    addRule(triggeredRules, "VERIFICATION_CODE");
+    instructions.A.push(`write the code ${code} on a paper and place it next to the product`);
+  }
+  if (code && !codeMatches(audit.verification.codeInPhotoC, code)) {
+    addRule(triggeredRules, "VERIFICATION_CODE");
+    instructions.C.push(`place the paper with the code ${code} on the sealed parcel`);
+  }
+
+  if (!trackingFitsCarrier(audit.guide.carrier, audit.guide.trackingNumber)) {
+    addRule(triggeredRules, "TRACKING_FORMAT");
+    instructions.C.push(
+      `the tracking number does not fit the format ${audit.guide.carrier} uses; show the whole guide sharply`,
+    );
+  }
+
+  if (context.freshness) {
+    const { dealCreatedAt, photos } = context.freshness;
+
+    if (guidePredatesDeal(audit.guide.dateIso, dealCreatedAt)) {
+      addRule(triggeredRules, "GUIDE_PREDATES_DEAL");
+      instructions.C.push("the guide is dated before this deal was opened; ship with a new guide");
+    }
+
+    for (const photo of photos) {
+      if (photo.reusedInOtherDeal) {
+        addRule(triggeredRules, "REUSED_PHOTO");
+        instructions[photo.slot].push("take a new photo, this one was already used in another deal");
+      } else if (isOldPhoto(photo.exif, dealCreatedAt)) {
+        addRule(triggeredRules, "OLD_PHOTO");
+        instructions[photo.slot].push("take a new photo now, this one was taken before the deal was opened");
+      }
+      if (isEditedPhoto(photo.exif)) {
+        addRule(triggeredRules, "EDITED_PHOTO");
+        instructions[photo.slot].push("send the photo straight from the camera, without editing it");
+      }
+    }
   }
 
   if (isWeightOutOfRange(audit.guide.weightKg, audit.product.expectedWeightKg)) {

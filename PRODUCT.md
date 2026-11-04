@@ -125,6 +125,7 @@ Thresholds live in `lib/agents/rules.config.ts` and are tuned with the eval set.
 | FR3 | Buyer pays with PayPal Checkout; payment captured into the platform account | Must |
 | FR4 | Seller uploads photos A, B, C and a delivery estimate ≤ 14 days | Must |
 | FR5 | AI audits evidence, lists inconsistencies, approves or blocks shipping | Must |
+| FR5a | Fraud checks: per-deal handwritten verification code in photos A and C, guide dated after the deal, tracking format per carrier, reused, old or edited photos | Must |
 | FR6 | Tracking number from the guide attached via PayPal shipment tracking | Must |
 | FR7 | Buyer confirms receipt, or auto-release 48 h after the estimate | Must |
 | FR13 | Demo mode: role switcher, sample evidence, shortened timers | Must |

@@ -1,4 +1,4 @@
-import { CircleCheck, Flag, ShieldX, TriangleAlert } from "lucide-react";
+import { CircleCheck, CircleMinus, Flag, ShieldX, TriangleAlert } from "lucide-react";
 import {
   ESCALATION_RULE_LABELS,
   type EscalationRuleId,
@@ -12,12 +12,14 @@ const CHECK_ICONS = {
   cleared: CircleCheck,
   blocked: ShieldX,
   flagged: Flag,
+  skipped: CircleMinus,
 } as const;
 
 const CHECK_TONES: Record<AuditCheckResult, string> = {
   cleared: "text-cleared",
   blocked: "text-blocked",
   flagged: "text-flagged",
+  skipped: "text-ink-muted",
 };
 
 function ruleLabel(rule: string): string {
@@ -35,8 +37,8 @@ export function AuditReport({ audit }: { audit: AuditReportView }) {
           Audit report
         </h2>
         <p className="mt-1 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-          Written from the three photos and the shipping guide. The rules, not a score,
-          decide what happens next.
+          Written from the three photos, the shipping guide and the fraud checks. The
+          rules, not a score, decide what happens next.
         </p>
       </div>
 

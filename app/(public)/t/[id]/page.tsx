@@ -4,6 +4,7 @@ import { AlertCircle } from "lucide-react";
 import { connection } from "next/server";
 import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
+import { VerificationCodeCard } from "@/components/verification-code-card";
 import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
 import { DisputeForm } from "@/components/buyer/dispute-form";
@@ -151,6 +152,14 @@ async function TrustLinkContent({
             <EvidenceSlot evidence={unboxing} />
           </div>
         </section>
+      ) : null}
+
+      {deal.verificationCode && deal.state !== "AWAITING_PAYMENT" ? (
+        <VerificationCodeCard
+          code={deal.verificationCode}
+          audience="buyer"
+          isSample={deal.isSample}
+        />
       ) : null}
 
       <section aria-labelledby="evidence-heading" className="space-y-4">

@@ -16,6 +16,8 @@ export const ESCALATION_RULES = {
   maxEvidenceAttempts: 3,
   /** Audits stuck in PENDING or RUNNING longer than this are retried by cron. */
   stuckAuditAfterMs: 3 * 60_000,
+  /** Slack for time zones and camera clocks when a photo or guide predates the deal. */
+  freshnessToleranceMs: 24 * 60 * 60 * 1000,
 } as const;
 
 export const ESCALATION_RULE_IDS = [
@@ -26,6 +28,12 @@ export const ESCALATION_RULE_IDS = [
   "TECHNICAL_FAILURE",
   "OUT_OF_BAND_REVERSAL",
   "HIGH_VALUE",
+  "VERIFICATION_CODE",
+  "GUIDE_PREDATES_DEAL",
+  "TRACKING_FORMAT",
+  "REUSED_PHOTO",
+  "EDITED_PHOTO",
+  "OLD_PHOTO",
 ] as const;
 
 export type EscalationRuleId = (typeof ESCALATION_RULE_IDS)[number];
@@ -39,4 +47,10 @@ export const ESCALATION_RULE_LABELS: Record<EscalationRuleId, string> = {
   TECHNICAL_FAILURE: "Technical failure",
   OUT_OF_BAND_REVERSAL: "Out-of-band reversal",
   HIGH_VALUE: "High-value deal",
+  VERIFICATION_CODE: "Verification code missing",
+  GUIDE_PREDATES_DEAL: "Guide older than the deal",
+  TRACKING_FORMAT: "Tracking number does not fit the carrier",
+  REUSED_PHOTO: "Photo used in another deal",
+  EDITED_PHOTO: "Edited photo",
+  OLD_PHOTO: "Photo taken before the deal",
 };

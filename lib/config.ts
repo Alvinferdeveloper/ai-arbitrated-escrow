@@ -33,3 +33,6 @@ export const EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
 
 /** PayPal tracking registrations tried per shipped deal before giving up. */
 export const TRACKING_MAX_ATTEMPTS = 5;
+
+/** Handwritten in the demo sample photos, which are shot before any deal exists. */
+export const DEMO_SAMPLE_VERIFICATION_CODE = "K7P4";

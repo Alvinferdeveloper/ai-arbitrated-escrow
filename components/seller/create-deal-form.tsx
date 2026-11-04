@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle } from "lucide-react";
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useState } from "react";
 import { createDealAction, type CreateDealFormState } from "@/app/(dashboard)/seller/actions";
 import { Button } from "@/components/ui/button";
 import type { PartyOption } from "@/lib/db/deal-store";
@@ -52,6 +52,7 @@ export function CreateDealForm({
     state.status === "INVALID_INPUT" || state.status === "PARTY_NOT_FOUND";
 
   const formRef = useRef<HTMLFormElement>(null);
+  const [sample, setSample] = useState(false);
 
   function fillFields(values: Record<string, string | null>) {
     const fields = formRef.current?.elements;
@@ -66,17 +67,22 @@ export function CreateDealForm({
 
   function fillFromDraft(draft: ListingDraft) {
     fillFields({ title: draft.title, description: draft.description, priceUsd: draft.priceUsd });
+    setSample(false);
   }
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
       <ScreenshotImport onDraft={fillFromDraft} />
+      <input type="hidden" name="sample" value={sample ? "1" : ""} />
 
       {DEMO_MODE ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-rule-line p-4">
           <p className="text-[0.875rem] text-ink">Trying the demo? Start from the sample listing.</p>
           {/* Matches the sample evidence photos, so the demo audit compares like with like. */}
-          <Button type="button" variant="ghost" size="sm" onClick={() => fillFields(SAMPLE_LISTING)}>
+          <Button type="button" variant="ghost" size="sm" onClick={() => {
+              fillFields(SAMPLE_LISTING);
+              setSample(true);
+            }}>
             Use the sample listing
           </Button>
         </div>

@@ -6,6 +6,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
 import { AiRetakeRequest } from "@/components/ai-retake-request";
 import { AuditReport } from "@/components/audit-report";
+import { VerificationCodeCard } from "@/components/verification-code-card";
 import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
@@ -96,6 +97,14 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         <AiRetakeRequest decision={deal.aiDecision} />
       ) : null}
 
+      {canUpload && deal.verificationCode ? (
+        <VerificationCodeCard
+          code={deal.verificationCode}
+          audience="seller"
+          isSample={deal.isSample}
+        />
+      ) : null}
+
       {canUpload ? <EvidenceUploadForm dealId={deal.id} /> : null}
 
       {deal.state === "AUDITING" ? <AuditRunning /> : null}
@@ -177,6 +186,7 @@ const AUDIT_STEPS = [
   "Checking the product inside the packing",
   "Checking the seal and the shipping guide",
   "Reading the shipping guide",
+  "Checking the verification code and the photo history",
 ];
 
 function AuditRunning() {

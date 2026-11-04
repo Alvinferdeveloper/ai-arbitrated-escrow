@@ -26,7 +26,9 @@ const audit: EvidenceAudit = {
     trackingNumber: "1Z999AA10123456784",
     weightKg: 1.4,
     date: "2026-10-28",
+    dateIso: "2026-10-28",
   },
+  verification: { codeInPhotoA: null, codeInPhotoC: null },
   inconsistencies: [],
 };
 
