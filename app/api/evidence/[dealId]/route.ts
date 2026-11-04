@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { runStoredEvidenceAudit } from "@/lib/agents/evidence-audit-runner";
 import {
-  getDealState,
+  getEvidenceWindow,
   removeEvidencePhotos,
   SupabaseEvidenceSubmissionStore,
   uploadEvidencePhoto,
@@ -17,6 +17,7 @@ import {
   EVIDENCE_UPLOAD_SLOTS,
   evidenceUploadMetadataSchema,
 } from "@/lib/deals/evidence-upload";
+import { isPast } from "@/lib/deals/deadline";
 import { dealIdSchema } from "@/lib/deals/schema";
 import {
   IncompleteEvidenceError,
@@ -70,10 +71,14 @@ export async function POST(
   }
 
   // Checked again under a lock by the database.
-  const state = await getDealState(dealId);
-  if (!state) return fail(404, "deal_not_found", "This deal no longer exists.");
+  const evidenceWindow = await getEvidenceWindow(dealId);
+  if (!evidenceWindow) return fail(404, "deal_not_found", "This deal no longer exists.");
+  const { state, dueAt } = evidenceWindow;
   if (state !== "FUNDS_HELD" && state !== "EVIDENCE_REJECTED") {
     return fail(409, "not_waiting_for_evidence", "This deal is not waiting for photos.");
+  }
+  if (isPast(dueAt)) {
+    return fail(409, "evidence_deadline_passed", "The deadline for the photos passed. The buyer is being refunded.");
   }
 
   const quota = await checkAiQuota(dealId);

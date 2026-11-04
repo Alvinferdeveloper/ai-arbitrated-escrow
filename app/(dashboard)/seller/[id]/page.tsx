@@ -16,7 +16,7 @@ import { EvidenceUploadForm } from "@/components/seller/evidence-upload-form";
 import { getDemoDeal } from "@/demo/data";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
-import { holdingSlipDeadline } from "@/lib/deals/deadline";
+import { holdingSlipDeadline, isPast } from "@/lib/deals/deadline";
 import { dealOutcome } from "@/lib/deals/story";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
@@ -57,8 +57,12 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
   if (!deal) notFound();
 
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
+  // Past the deadline the cron refunds the buyer; the upload route refuses too.
+  const deadlinePassed = isPast(deal.evidenceDueAt);
   const canUpload =
-    isSupabaseConfigured() && (deal.state === "FUNDS_HELD" || deal.state === "EVIDENCE_REJECTED");
+    isSupabaseConfigured() &&
+    !deadlinePassed &&
+    (deal.state === "FUNDS_HELD" || deal.state === "EVIDENCE_REJECTED");
   // After a rejection the seller needs the reasons before the upload slots.
   const rejectedAudit = deal.state === "EVIDENCE_REJECTED" ? deal.audit : null;
   const outcome = dealOutcome(
@@ -108,7 +112,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
 
       {outcome ? <DealOutcomeSection outcome={outcome} /> : <SellerNextStep deal={deal} />}
 
-      {deal.state === "EVIDENCE_REJECTED" && deal.aiDecision ? (
+      {deal.state === "EVIDENCE_REJECTED" && deal.aiDecision && !deadlinePassed ? (
         <AiRetakeRequest decision={deal.aiDecision} />
       ) : null}
 
@@ -154,6 +158,17 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
 }
 
 function SellerNextStep({ deal }: { deal: DealView }) {
+  if (isPast(deal.evidenceDueAt)) {
+    return (
+      <section className="space-y-1 rounded-lg border border-rule-line bg-kraft p-4">
+        <h2 className="text-[0.9375rem] font-semibold leading-[1.35] text-ink">The deadline passed</h2>
+        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
+          No valid photos arrived in time, so uploads are closed and the AI is refunding the buyer.
+        </p>
+      </section>
+    );
+  }
+
   const copy: Partial<Record<DealView["state"], { title: string; body: string }>> = {
     AWAITING_PAYMENT: {
       title: "Share the Trust Link",

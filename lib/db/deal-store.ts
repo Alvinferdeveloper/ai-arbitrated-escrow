@@ -2,7 +2,8 @@ import "server-only";
 import { toAuditReportView } from "@/lib/agents/report";
 import { z } from "zod";
 import { storedEvidenceAuditSchema } from "@/lib/agents/schemas";
-import { DEMO_SAMPLE_VERIFICATION_CODE, EVIDENCE_DEADLINE_MS } from "@/lib/config";
+import { DEMO_SAMPLE_VERIFICATION_CODE } from "@/lib/config";
+import { evidenceDueAt } from "@/lib/deals/deadline";
 import { EVIDENCE_SLOT_COPY } from "@/lib/deals/evidence";
 import { usdToCents } from "@/lib/deals/money";
 import type {
@@ -170,8 +171,6 @@ function toAiDecision(payload: unknown): AiDecisionView | null {
   const parsed = aiDecisionPayloadSchema.safeParse(payload ?? {});
   return parsed.success ? parsed.data : null;
 }
-
-const WAITING_FOR_EVIDENCE: readonly DealState[] = ["FUNDS_HELD", "EVIDENCE_REJECTED"];
 
 /** Newest first; enough to cover retakes, a dispute and the settlement. */
 const EVENT_HISTORY_LIMIT = 30;
@@ -415,15 +414,13 @@ export async function getTrustLinkDeal(
   const history = events ?? [];
   const latestEvent = history.find((event) => event.to_state === deal.state);
 
-  const evidenceDueAt = WAITING_FOR_EVIDENCE.includes(deal.state)
-    ? new Date(new Date(deal.updated_at).getTime() + EVIDENCE_DEADLINE_MS)
-    : null;
+  const evidenceDue = evidenceDueAt(deal.state, new Date(deal.updated_at));
 
   return {
     ...dealBase,
     evidence: evidenceViews,
     audit: auditView,
-    evidenceDueAt,
+    evidenceDueAt: evidenceDue,
     aiDecision: latestEvent ? toAiDecision(latestEvent.payload) : null,
     closedFrom: latestEvent?.from_state ?? null,
     refundReason: refundReasonFrom(history),

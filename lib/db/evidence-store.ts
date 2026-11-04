@@ -5,6 +5,7 @@ import { EVIDENCE_PHOTO_SLOTS, type EvidenceImage, type EvidencePhotoSlot } from
 import { EVIDENCE_AUDIT_PROMPT_VERSION } from "@/lib/agents/prompts";
 import type { EvidenceRuleContext } from "@/lib/agents/rules";
 import { ESCALATION_RULES } from "@/lib/agents/rules.config";
+import { evidenceDueAt } from "@/lib/deals/deadline";
 import type { EvidenceMediaType } from "@/lib/deals/evidence-upload";
 import type {
   EvidenceItem,
@@ -52,6 +53,21 @@ export async function removeEvidencePhotos(paths: readonly string[]): Promise<vo
 
   const { error } = await getSupabaseAdmin().storage.from(BUCKET).remove([...paths]);
   if (error) console.error("Could not remove orphaned evidence photos", error.message);
+}
+
+/** The deal state and, while photos are expected, when they are due. */
+export async function getEvidenceWindow(
+  dealId: string,
+): Promise<{ state: DealState; dueAt: Date | null } | null> {
+  const { data, error } = await getSupabaseAdmin()
+    .from("deals")
+    .select("state, updated_at")
+    .eq("id", dealId)
+    .maybeSingle<{ state: DealState; updated_at: string }>();
+
+  if (error) throw new Error(`Could not load the deal: ${error.message}`);
+  if (!data) return null;
+  return { state: data.state, dueAt: evidenceDueAt(data.state, new Date(data.updated_at)) };
 }
 
 export async function getDealState(dealId: string): Promise<DealState | null> {

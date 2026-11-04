@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { formatDeadline, holdingSlipDeadline } from "./deadline";
+import { EVIDENCE_DEADLINE_MS } from "@/lib/config";
+import { evidenceDueAt, formatDeadline, holdingSlipDeadline, isPast } from "./deadline";
 
 const now = new Date("2026-10-29T12:00:00.000Z");
 
@@ -48,5 +49,19 @@ describe("holdingSlipDeadline", () => {
       holdingSlipDeadline({ evidenceDueAt: inMs(60_000), autoReleaseAt: inMs(120_000) }, now),
     ).toBe("Evidence due in 1m");
     expect(holdingSlipDeadline({ evidenceDueAt: null, autoReleaseAt: null }, now)).toBeUndefined();
+  });
+});
+
+describe("evidenceDueAt", () => {
+  it("runs only while the deal waits for photos", () => {
+    expect(evidenceDueAt("FUNDS_HELD", now)?.getTime()).toBe(now.getTime() + EVIDENCE_DEADLINE_MS);
+    expect(evidenceDueAt("EVIDENCE_REJECTED", now)).not.toBeNull();
+    expect(evidenceDueAt("SHIPPED", now)).toBeNull();
+  });
+
+  it("treats the deadline itself as passed", () => {
+    expect(isPast(now, now)).toBe(true);
+    expect(isPast(inMs(1), now)).toBe(false);
+    expect(isPast(null, now)).toBe(false);
   });
 });

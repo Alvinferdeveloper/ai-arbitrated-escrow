@@ -1,3 +1,6 @@
+import { EVIDENCE_DEADLINE_MS } from "@/lib/config";
+import type { DealState } from "@/lib/state-machine/states";
+
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
 const DAY_MS = 24 * HOUR_MS;
@@ -36,4 +39,17 @@ export function holdingSlipDeadline(
     return formatDeadline(deal.autoReleaseAt, now, "Auto-release", "Auto-release due, payout starting");
   }
   return undefined;
+}
+
+/**
+ * When the seller's photos are due. The clock starts on payment and restarts
+ * on each rejection; null when the deal is not waiting for photos.
+ */
+export function evidenceDueAt(state: DealState, stateSince: Date): Date | null {
+  if (state !== "FUNDS_HELD" && state !== "EVIDENCE_REJECTED") return null;
+  return new Date(stateSince.getTime() + EVIDENCE_DEADLINE_MS);
+}
+
+export function isPast(deadline: Date | null, now: Date = new Date()): boolean {
+  return deadline !== null && deadline.getTime() <= now.getTime();
 }
