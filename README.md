@@ -163,6 +163,17 @@ webhook cannot reach your machine, the Trust Link stays on "waiting for PayPal";
 use a tunnel (ngrok, cloudflared) and point the webhook at
 `https://<tunnel>/api/paypal/webhook`.
 
+## Shipment tracking
+
+When a deal reaches `SHIPPED` (AI pass or mediator approval), the guide's
+carrier and tracking number are added to the buyer's capture with Orders v2
+`POST /v2/checkout/orders/{id}/track` (`notify_payer: true`). Known carriers map
+to PayPal's enum (`UPS`, `FEDEX`, `DHL`, `USPS`, Central American posts);
+anything else is sent as `OTHER` with `carrier_name_other`. Tracking is
+informational: a failure never changes the deal or moves money. It is stored in
+`deals.tracking_error` and retried by `/api/cron/auto-release`, up to five
+attempts.
+
 ## Release and auto-release
 
 On a `SHIPPED` deal the buyer presses **Confirm receipt**. That queues a

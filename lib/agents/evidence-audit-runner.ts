@@ -7,6 +7,7 @@ import {
   type FinishedAuditRow,
 } from "@/lib/db/evidence-store";
 import { runAiRefund } from "@/lib/paypal/settlement-runner";
+import { registerShipmentTracking } from "@/lib/paypal/tracking-runner";
 import { SupabaseShippingStore } from "@/lib/db/shipping-store";
 import { SupabaseTransitionStore } from "@/lib/db/transition-store";
 import { applyEvidenceDecision } from "@/lib/state-machine/evidence-outcome";
@@ -31,6 +32,7 @@ async function applyDecision(dealId: string, decision: EvidenceAuditDecision) {
       { previousRejections: await countEvidenceRejections(dealId) },
     );
     if (event.to === "REFUNDING") await runAiRefund(dealId);
+    if (event.to === "SHIPPED") await registerShipmentTracking(dealId);
   } catch (error) {
     // Another run already moved the deal.
     if (error instanceof TransitionConflictError) return;

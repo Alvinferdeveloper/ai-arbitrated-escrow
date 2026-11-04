@@ -30,3 +30,6 @@ export const EVIDENCE_MAX_LONG_SIDE_PX = 1536;
 
 /** Mirrors the evidence bucket limit. */
 export const EVIDENCE_MAX_BYTES = 10 * 1024 * 1024;
+
+/** PayPal tracking registrations tried per shipped deal before giving up. */
+export const TRACKING_MAX_ATTEMPTS = 5;

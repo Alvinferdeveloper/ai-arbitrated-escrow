@@ -1,9 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import { runPendingSettlement } from "@/lib/paypal/settlement-runner";
+import { registerShipmentTracking } from "@/lib/paypal/tracking-runner";
 import { SupabaseMediatorDecisionStore } from "@/lib/db/mediator-store";
 import {
   MediationConflictError,
@@ -95,6 +97,10 @@ export async function decideMediationCase(
 
     if (result.status === "SETTLEMENT_QUEUED") {
       await runPendingSettlement(decision.caseId);
+    }
+
+    if (result.status === "SHIPPING_APPROVED") {
+      after(() => registerShipmentTracking(decision.caseId));
     }
 
     revalidatePath("/mediator");
