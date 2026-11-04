@@ -13,28 +13,26 @@ export function VerificationCodeCard({
   return (
     <section
       aria-labelledby="verification-code-heading"
-      className="flex flex-wrap items-center gap-x-6 gap-y-3 rounded-lg border border-rule-line bg-sheet p-4"
+      className="space-y-3 rounded-lg border border-rule-line bg-sheet p-4"
     >
-      <div className="min-w-0 flex-1 space-y-1">
-        <h2
-          id="verification-code-heading"
-          className="flex items-center gap-2 text-[0.9375rem] font-semibold leading-[1.35] text-ink"
-        >
-          <KeyRound aria-hidden="true" size={18} strokeWidth={1.75} className="text-postal-ink" />
-          Verification code
-        </h2>
-        <p className="max-w-[60ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-          {audience === "seller"
-            ? "Write it on a paper and keep it in the frame of photo A (next to the product) and photo C (on the sealed parcel). Photos from the internet or an older sale cannot carry it."
-            : "The seller must show this code, handwritten, in the product photo and the parcel photo. It proves the photos were taken for your deal, not copied from elsewhere."}
-          {isSample ? " The sample photos already show it." : ""}
-        </p>
-      </div>
+      <h2
+        id="verification-code-heading"
+        className="flex items-center gap-2 text-[0.9375rem] font-semibold leading-[1.35] text-ink"
+      >
+        <KeyRound aria-hidden="true" size={18} strokeWidth={1.75} className="text-postal-ink" />
+        Verification code
+      </h2>
       <p
         aria-label={`Code ${code.split("").join(" ")}`}
         className="font-mono text-[2rem] font-medium leading-none tracking-[0.2em] text-ink"
       >
         {code}
+      </p>
+      <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+        {audience === "seller"
+          ? "Write it on a paper and keep it in the frame of photo A (next to the product) and photo C (on the sealed parcel). Photos from the internet or an older sale cannot carry it."
+          : "The seller must show this code, handwritten, in the product photo and the parcel photo. It proves the photos were taken for your deal, not copied from elsewhere."}
+        {isSample ? " The sample photos already show it." : ""}
       </p>
     </section>
   );
