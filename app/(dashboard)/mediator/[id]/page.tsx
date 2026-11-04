@@ -18,6 +18,7 @@ import { RoleSwitcher } from "@/components/role-switcher";
 import { ESCALATION_RULE_LABELS } from "@/lib/agents/rules.config";
 import { formatCaseAge } from "@/lib/mediation/age";
 import { getMediationCaseById } from "@/lib/mediation/repository";
+import type { MediationCase } from "@/lib/mediation/types";
 
 export default async function MediatorCasePage({
   params,
@@ -60,135 +61,146 @@ export default async function MediatorCasePage({
         </div>
       </header>
 
-      <section className="rounded-lg border border-flagged bg-flagged-wash p-4">
-        <div className="flex gap-3">
-          <Flag
-            aria-hidden="true"
-            size={18}
-            strokeWidth={1.75}
-            className="mt-0.5 shrink-0 text-flagged"
-          />
-          <div>
-            <p className="text-[0.8125rem] font-medium text-flagged">
-              {ESCALATION_RULE_LABELS[caseFile.reason]}
-            </p>
-            <p className="mt-1 text-[0.9375rem] leading-[1.55] text-ink">
-              {caseFile.reasonDetail}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section aria-labelledby="summary-heading" className="space-y-2">
+      <section
+        aria-labelledby="reason-heading"
+        className="space-y-2 rounded-lg border border-flagged bg-flagged-wash p-4"
+      >
         <h2
-          id="summary-heading"
-          className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+          id="reason-heading"
+          className="flex items-center gap-2 text-[0.9375rem] font-semibold leading-[1.35] text-flagged"
         >
-          Why a person is reviewing this
+          <Flag aria-hidden="true" size={18} strokeWidth={1.75} className="shrink-0" />
+          Why the AI handed this to you: {ESCALATION_RULE_LABELS[caseFile.reason].toLowerCase()}
         </h2>
-        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
-          {caseFile.summary}
-        </p>
+        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">{caseFile.summary}</p>
       </section>
 
-      <section aria-labelledby="claim-heading" className="space-y-2">
-        <h2
-          id="claim-heading"
-          className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-        >
-          Buyer&apos;s claim
-        </h2>
-        <p className="max-w-[65ch] border-l border-rule-line pl-4 text-[0.9375rem] leading-[1.55] text-ink">
-          {caseFile.claim}
-        </p>
-      </section>
+      <div className="space-y-8 lg:grid lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:items-start lg:gap-8 lg:space-y-0">
+        <div className="min-w-0 space-y-8">
+          <EvidenceComparison caseFile={caseFile} />
 
-      <CaseTimeline entries={caseFile.timeline} />
-
-      <section aria-labelledby="seller-evidence-heading" className="space-y-4">
-        <div className="flex items-baseline justify-between gap-4">
-          <h2
-            id="seller-evidence-heading"
-            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-          >
-            Seller evidence
-          </h2>
-          <span className="text-[0.8125rem] text-ink-muted">
-            {caseFile.sellerEvidence.length} photos
-          </span>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {caseFile.sellerEvidence.map((item) => (
-            <EvidenceSlot key={item.slot} evidence={item} />
-          ))}
-        </div>
-      </section>
-
-      <section aria-labelledby="buyer-evidence-heading" className="space-y-4">
-        <div className="flex items-baseline justify-between gap-4">
-          <h2
-            id="buyer-evidence-heading"
-            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-          >
-            Buyer evidence
-          </h2>
-          <span className="text-[0.8125rem] text-ink-muted">
-            {caseFile.buyerEvidence.length} photos
-          </span>
-        </div>
-        {caseFile.buyerEvidence.length > 0 ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {caseFile.buyerEvidence.map((item) => (
-              <EvidenceSlot key={item.slot} evidence={item} />
-            ))}
+          <div className="lg:hidden">
+            <Decision caseFile={caseFile} />
           </div>
-        ) : (
-          <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-            The buyer has not uploaded unboxing evidence yet. The money stays held
-            while the mediator waits.
-          </p>
-        )}
-      </section>
 
-      {caseFile.audit ? (
-        <AuditReport audit={caseFile.audit} />
-      ) : (
-        <section aria-labelledby="audit-failure-heading" className="space-y-3">
-          <h2
-            id="audit-failure-heading"
-            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-          >
-            Audit report
-          </h2>
-          <div className="flex gap-3 rounded-md border border-blocked bg-blocked-wash p-4">
-            <ShieldAlert
-              aria-hidden="true"
-              size={18}
-              strokeWidth={1.75}
-              className="mt-0.5 shrink-0 text-blocked"
-            />
-            <p className="text-[0.9375rem] leading-[1.55] text-ink">
-              The vision check failed before it could write a report. No shipping
-              decision was made from model output, so a person reads the evidence.
-            </p>
-          </div>
-        </section>
-      )}
+          {caseFile.audit ? (
+            <details className="group rounded-lg border border-rule-line bg-sheet">
+              <summary className="flex min-h-11 cursor-pointer items-center px-4 text-[0.9375rem] font-medium text-ink marker:text-ink-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-postal-ink">
+                Pre-shipment audit of the seller&apos;s photos
+              </summary>
+              <div className="border-t border-rule-line p-4">
+                <AuditReport audit={caseFile.audit} />
+              </div>
+            </details>
+          ) : (
+            <section className="flex gap-3 rounded-md border border-blocked bg-blocked-wash p-4">
+              <ShieldAlert
+                aria-hidden="true"
+                size={18}
+                strokeWidth={1.75}
+                className="mt-0.5 shrink-0 text-blocked"
+              />
+              <p className="text-[0.9375rem] leading-[1.55] text-ink">
+                The AI audit failed before it could write a report, so nothing shipped on its
+                findings. Read the photos yourself.
+              </p>
+            </section>
+          )}
 
-      {caseFile.isExample ? null : (
-      <MediatorActions
-        caseId={caseFile.id}
-        amountCents={caseFile.priceCents}
-        sellerName={caseFile.seller.displayName}
-        buyerName={caseFile.buyer.displayName}
-        settlement={caseFile.settlement}
-        canApproveShipping={caseFile.canApproveShipping}
-      />
-      )}
+          <CaseTimeline entries={caseFile.timeline} />
+        </div>
+
+        <aside className="hidden lg:sticky lg:top-20 lg:block">
+          <Decision caseFile={caseFile} />
+        </aside>
+      </div>
 
       <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">
         Sandbox demo. A release or refund waits until PayPal confirms it.
       </footer>
     </div>
+  );
+}
+
+function Decision({ caseFile }: { caseFile: MediationCase }) {
+  if (caseFile.isExample) {
+    return (
+      <section className="space-y-1 rounded-lg border border-rule-line bg-kraft p-4">
+        <h2 className="text-[1.125rem] font-semibold leading-[1.35] text-ink">Decision</h2>
+        <p className="text-[0.9375rem] leading-[1.55] text-ink-muted">
+          Switched off on example deals.
+        </p>
+      </section>
+    );
+  }
+
+  return (
+    <MediatorActions
+      caseId={caseFile.id}
+      amountCents={caseFile.priceCents}
+      sellerName={caseFile.seller.displayName}
+      buyerName={caseFile.buyer.displayName}
+      settlement={caseFile.settlement}
+      canApproveShipping={caseFile.canApproveShipping}
+    />
+  );
+}
+
+/** The two photos in conflict side by side; the rest of the seller's evidence below. */
+function EvidenceComparison({ caseFile }: { caseFile: MediationCase }) {
+  const parcel = caseFile.sellerEvidence.find((item) => item.slot === "C");
+  const unboxing = caseFile.buyerEvidence[0];
+  const others = caseFile.sellerEvidence.filter((item) => !(unboxing && item.slot === "C"));
+
+  return (
+    <section aria-labelledby="evidence-heading" className="space-y-4">
+      <h2 id="evidence-heading" className="text-[1.125rem] font-semibold leading-[1.35] text-ink">
+        {unboxing ? "What was sent and what arrived" : "Seller evidence"}
+      </h2>
+
+      {unboxing && parcel ? (
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <div className="min-w-0 space-y-2">
+              <p className="text-[0.8125rem] font-medium text-ink-muted">
+                {caseFile.seller.displayName} sealed it
+              </p>
+              <EvidenceSlot evidence={parcel} />
+            </div>
+            <div className="min-w-0 space-y-2">
+              <p className="text-[0.8125rem] font-medium text-ink-muted">
+                {caseFile.buyer.displayName} opened it
+              </p>
+              <EvidenceSlot evidence={unboxing} />
+            </div>
+          </div>
+          <blockquote className="rounded-md border border-rule-line bg-sheet p-3 text-[0.9375rem] leading-[1.55] text-ink">
+            <span className="text-[0.8125rem] font-medium text-ink-muted">
+              {caseFile.buyer.displayName}&apos;s claim
+            </span>
+            <span className="mt-1 block">&ldquo;{caseFile.claim}&rdquo;</span>
+          </blockquote>
+        </>
+      ) : (
+        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+          {caseFile.claim}
+        </p>
+      )}
+
+      {others.length > 0 ? (
+        <div className="space-y-2">
+          {unboxing ? (
+            <p className="text-[0.8125rem] font-medium text-ink-muted">
+              The seller&apos;s other photos
+            </p>
+          ) : null}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+            {others.map((item) => (
+              <EvidenceSlot key={item.slot} evidence={item} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }

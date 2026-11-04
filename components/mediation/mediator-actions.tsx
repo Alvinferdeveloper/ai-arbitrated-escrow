@@ -76,7 +76,10 @@ export function MediatorActions({
   }
 
   return (
-    <section aria-labelledby="decision-heading" className="space-y-4">
+    <section
+      aria-labelledby="decision-heading"
+      className="space-y-4 rounded-lg border border-rule-line bg-sheet p-4"
+    >
       <div>
         <h2
           id="decision-heading"
@@ -85,8 +88,8 @@ export function MediatorActions({
           Decision
         </h2>
         <p className="mt-1 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-          A decision starts a guarded state change. A release or refund is only
-          queued here; the deal settles when PayPal confirms the money moved.
+          The money is held until you decide. A release or refund closes the deal once
+          PayPal confirms it.
         </p>
       </div>
 
@@ -175,7 +178,7 @@ export function MediatorActions({
       ) : pending?.action === "RELEASE" ? (
         <ConfirmPanel
           title={`Release ${formatMoney(amountCents)} to ${sellerName}?`}
-          detail="The state machine records a pending payout. The deal stays with a mediator until PayPal confirms it."
+          detail="We queue the payout now. The deal closes when PayPal confirms the money moved."
           confirmLabel={submitting ? "Queueing payout..." : "Confirm release"}
           pending={submitting}
           onConfirm={() => submit({ action: "RELEASE" })}
@@ -184,10 +187,9 @@ export function MediatorActions({
       ) : pending?.action === "REFUND" ? (
         <ConfirmPanel
           title={`Refund ${formatMoney(amountCents)} to ${buyerName}?`}
-          detail="The state machine records a pending refund. The deal stays with a mediator until PayPal confirms it."
+          detail="We queue the refund now. The deal closes when PayPal confirms the money moved."
           confirmLabel={submitting ? "Queueing refund..." : "Confirm refund"}
           pending={submitting}
-          variant="destructive"
           onConfirm={() => submit({ action: "REFUND" })}
           onCancel={cancel}
         />
@@ -222,7 +224,7 @@ export function MediatorActions({
             The case returns to the {target === "SELLER" ? "seller" : "buyer"}.
             The money stays held.
           </p>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <div className="mt-4 flex flex-col gap-2">
             <Button
               type="button"
               disabled={submitting}
@@ -241,10 +243,12 @@ export function MediatorActions({
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        // Equal weight on purpose: the screen must not lean towards either side.
+        <div className="flex flex-col gap-2">
           {canApproveShipping ? (
             <Button
               type="button"
+              variant="secondary"
               onClick={() => setPending({ action: "APPROVE_SHIPPING" })}
             >
               Approve shipping
@@ -252,32 +256,29 @@ export function MediatorActions({
           ) : (
             <Button
               type="button"
+              variant="secondary"
               onClick={() => setPending({ action: "RELEASE" })}
             >
-              Release to seller
+              Release {formatMoney(amountCents)} to {sellerName}
             </Button>
           )}
           <Button
             type="button"
-            variant="destructive"
+            variant="secondary"
             onClick={() => setPending({ action: "REFUND" })}
           >
-            Refund buyer
+            Refund {formatMoney(amountCents)} to {buyerName}
           </Button>
           <Button
             type="button"
-            variant="secondary"
+            variant="ghost"
             onClick={() => setPending({ action: "REQUEST_EVIDENCE" })}
           >
-            Request more evidence
+            Ask for more evidence
           </Button>
         </div>
       )}
 
-      <p className="max-w-[65ch] text-[0.8125rem] leading-[1.5] text-ink-muted">
-        Sandbox. Decisions are recorded in Supabase; money moves only after
-        PayPal confirms it.
-      </p>
     </section>
   );
 }
@@ -303,7 +304,7 @@ function ConfirmPanel({
     <div className="rounded-md border border-rule-line bg-kraft p-4">
       <p className="text-[0.9375rem] font-medium text-ink">{title}</p>
       <p className="mt-1 text-[0.875rem] leading-[1.55] text-ink-muted">{detail}</p>
-      <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+      <div className="mt-4 flex flex-col gap-2">
         <Button
           type="button"
           variant={variant}

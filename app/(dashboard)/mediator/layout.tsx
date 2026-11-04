@@ -30,7 +30,7 @@ export default function MediatorLayout({ children }: { children: ReactNode }) {
               className="mt-4 inline-flex items-center gap-1.5 rounded-sm text-[0.8125rem] font-medium text-postal-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-postal-ink focus-visible:ring-offset-2 focus-visible:ring-offset-kraft"
             >
               <ArrowLeft aria-hidden="true" size={16} strokeWidth={1.75} />
-              Buyer demo
+              Home
             </Link>
           </div>
         </aside>

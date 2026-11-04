@@ -60,7 +60,7 @@ export function CaseTimeline({ entries }: { entries: MediationTimelineEntry[] })
                 <p className="mt-1 max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted">
                   {entry.detail}
                 </p>
-                <p className="mt-1 text-[0.75rem] font-medium uppercase tracking-[0.04em] text-ink-muted">
+                <p className="mt-1 text-[0.8125rem] font-medium text-ink-muted">
                   {ACTOR_LABELS[entry.actor]}
                 </p>
               </div>
