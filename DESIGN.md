@@ -308,10 +308,15 @@ client-side resize to 1536 px, and "Replace". Empty, uploading (progress bar), u
 rejected states.
 
 ### Audit Report
-A written record, not a score. Four check rows (product matches listing, product in packing,
-parcel sealed with legible guide, guide data readable), each with a cleared / blocked / flagged
-icon and one plain sentence. Then the data read from the guide in a two-column Data-type list
-(carrier, tracking, weight, date). Then the inconsistencies with reasons, and the triggered rules
+A written record, not a score. One summary line first ("All 8 checks passed." in Cleared, or
+"1 check did not pass: Weight fits the product." in Blocked). Then one row per check, so every rule that
+can fire has a visible row: product matches listing, serial number (only when the high-value
+rule fired), product in packing, parcel sealed with legible guide, guide data readable, weight
+fits the product, verification code, photos are original, guide newer than the deal, tracking
+number fits the carrier. Each row has a cleared / blocked / flagged / skipped icon and one plain
+sentence; skipped (Ink Muted) means the check could not run and never reads as passed. Rows sort
+problems first, skipped last. Then the data read from the guide in a two-column Data-type list
+(carrier, tracking, weight, date). Then the inconsistencies with reasons, and "Rules that fired"
 as Flagged stamps. While running, the same rows render as skeletons that tick one by one as
 Realtime updates arrive ("Reading the shipping guide").
 

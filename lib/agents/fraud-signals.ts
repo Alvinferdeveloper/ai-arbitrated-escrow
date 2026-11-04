@@ -36,6 +36,11 @@ const TRACKING_FORMATS: Record<string, RegExp> = {
   DHL: /^(\d{10}|[A-Z]{3}\d{7})$/,
 };
 
+/** False for carriers with no public format, whose numbers are not checked. */
+export function hasTrackingFormat(carrier: string | null): boolean {
+  return Boolean(carrier && TRACKING_FORMATS[resolveCarrier(carrier).carrier]);
+}
+
 export function trackingFitsCarrier(carrier: string | null, trackingNumber: string | null): boolean {
   if (!carrier || !trackingNumber) return true;
   const format = TRACKING_FORMATS[resolveCarrier(carrier).carrier];

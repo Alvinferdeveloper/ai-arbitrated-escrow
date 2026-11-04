@@ -57,6 +57,8 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
   const canUpload =
     isSupabaseConfigured() && (deal.state === "FUNDS_HELD" || deal.state === "EVIDENCE_REJECTED");
+  // After a rejection the seller needs the reasons before the upload slots.
+  const rejectedAudit = deal.state === "EVIDENCE_REJECTED" ? deal.audit : null;
 
   return (
     <div className="mt-4 space-y-8">
@@ -97,6 +99,8 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         <AiRetakeRequest decision={deal.aiDecision} />
       ) : null}
 
+      {rejectedAudit ? <AuditReport audit={rejectedAudit} /> : null}
+
       {canUpload && deal.verificationCode ? (
         <VerificationCodeCard
           code={deal.verificationCode}
@@ -125,7 +129,9 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         </section>
       ) : null}
 
-      {deal.audit && deal.state !== "AUDITING" ? <AuditReport audit={deal.audit} /> : null}
+      {deal.audit && deal.state !== "AUDITING" && !rejectedAudit ? (
+        <AuditReport audit={deal.audit} />
+      ) : null}
 
       <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">
         Sandbox demo. No real money moves.
@@ -146,7 +152,9 @@ function SellerNextStep({ deal }: { deal: DealView }) {
     },
     EVIDENCE_REJECTED: {
       title: "Retake the photos",
-      body: "Send all three photos again with the changes below, before the deadline in the slip above.",
+      body: deal.aiDecision?.retakes.length
+        ? "Send all three photos again with the changes below, before the deadline in the slip above."
+        : "Send all three photos again before the deadline in the slip above. The audit report shows what did not pass.",
     },
     REFUNDING: {
       title: "Deal cancelled by the AI",

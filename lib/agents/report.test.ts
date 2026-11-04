@@ -41,6 +41,7 @@ describe("toAuditReportView", () => {
       "packing",
       "parcel",
       "guide",
+      "weight",
       "original",
       "guide-date",
       "tracking-format",
@@ -77,7 +78,7 @@ describe("toAuditReportView", () => {
     );
 
     expect(report.guide).toBeNull();
-    expect(report.checks.find((check) => check.id === "guide")?.result).toBe("flagged");
+    expect(report.checks.find((check) => check.id === "guide")?.result).toBe("blocked");
   });
 
   it("marks a missing packing photo as blocked", () => {
@@ -120,5 +121,35 @@ describe("toAuditReportView", () => {
     const report = toAuditReportView(honestAudit, [], { verificationCode: "K7P4", isSample: true });
     expect(report.checks.find((check) => check.id === "original")?.result).toBe("skipped");
     expect(report.checks.find((check) => check.id === "guide-date")?.result).toBe("skipped");
+  });
+
+  it("shows a fired weight rule as a blocked row at the top", () => {
+    const report = toAuditReportView(
+      { ...honestAudit, guide: { ...honestAudit.guide, weightKg: 0.4 } },
+      ["WEIGHT_OUT_OF_RANGE"],
+    );
+    expect(report.checks[0]).toMatchObject({
+      id: "weight",
+      result: "blocked",
+      detail: "The guide records 0.4 kg; this product weighs about 1.4 kg packed.",
+    });
+  });
+
+  it("adds a serial number row only when the high-value rule fired", () => {
+    expect(toAuditReportView(honestAudit, []).checks.some((c) => c.id === "serial")).toBe(false);
+    expect(toAuditReportView(honestAudit, ["HIGH_VALUE"]).checks[0]).toMatchObject({
+      id: "serial",
+      result: "blocked",
+    });
+  });
+
+  it("marks checks that could not run as skipped, after the others", () => {
+    const report = toAuditReportView(
+      { ...honestAudit, guide: { ...honestAudit.guide, carrier: "Cargo Expreso", dateIso: null } },
+      [],
+    );
+    const ids = report.checks.map((check) => check.id);
+    expect(ids.slice(-2)).toEqual(["guide-date", "tracking-format"]);
+    expect(report.checks.at(-1)?.result).toBe("skipped");
   });
 });

@@ -26,7 +26,25 @@ function ruleLabel(rule: string): string {
   return ESCALATION_RULE_LABELS[rule as EscalationRuleId] ?? rule;
 }
 
+function summarize(audit: AuditReportView): string {
+  const problems = audit.checks.filter(
+    (check) => check.result === "blocked" || check.result === "flagged",
+  );
+  if (problems.length === 0) {
+    const passed = audit.checks.filter((check) => check.result === "cleared").length;
+    return `All ${passed} checks passed.`;
+  }
+  const names = problems.map((check) => check.label).join(", ");
+  return problems.length === 1
+    ? `1 check did not pass: ${names}.`
+    : `${problems.length} checks did not pass: ${names}.`;
+}
+
 export function AuditReport({ audit }: { audit: AuditReportView }) {
+  const hasProblems = audit.checks.some(
+    (check) => check.result === "blocked" || check.result === "flagged",
+  );
+
   return (
     <section aria-labelledby="audit-heading" className="space-y-5">
       <div>
@@ -39,6 +57,11 @@ export function AuditReport({ audit }: { audit: AuditReportView }) {
         <p className="mt-1 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
           Written from the three photos, the shipping guide and the fraud checks. The
           rules, not a score, decide what happens next.
+        </p>
+        <p
+          className={`mt-3 text-[1rem] font-medium leading-[1.55] ${hasProblems ? "text-blocked" : "text-cleared"}`}
+        >
+          {summarize(audit)}
         </p>
       </div>
 
@@ -111,7 +134,7 @@ export function AuditReport({ audit }: { audit: AuditReportView }) {
 
       <div>
         <h3 className="text-[0.8125rem] font-medium text-ink-muted">
-          Escalation rules
+          Rules that fired
         </h3>
         {audit.triggeredRules.length > 0 ? (
           <ul className="mt-2 flex flex-wrap gap-2">
@@ -127,7 +150,7 @@ export function AuditReport({ audit }: { audit: AuditReportView }) {
           </ul>
         ) : (
           <p className="mt-2 text-[0.9375rem] text-ink-muted">
-            No escalation rule fired.
+            No rule fired.
           </p>
         )}
       </div>
