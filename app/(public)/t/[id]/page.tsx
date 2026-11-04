@@ -373,7 +373,11 @@ function BuyerAction({
           Your next step
         </h2>
         {releaseEnabled ? (
-          <ConfirmReceiptForm dealId={deal.id} amountCents={deal.priceCents} />
+          <ConfirmReceiptForm
+            dealId={deal.id}
+            amountCents={deal.priceCents}
+            sellerName={deal.seller.displayName}
+          />
         ) : (
           <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
             Confirming receipt needs Supabase in this environment. The money stays
