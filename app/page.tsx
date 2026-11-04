@@ -188,9 +188,9 @@ export default function Home() {
               id="demo-heading"
               className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
             >
-              Walk the demo
+              Example deals
             </h2>
-            <span className="text-[0.8125rem] text-ink-muted">3 seeded deals</span>
+            <span className="text-[0.8125rem] text-ink-muted">Each frozen at one step</span>
           </div>
           <Suspense fallback={<DemoDealList />}>
             <LiveDemoDealList />

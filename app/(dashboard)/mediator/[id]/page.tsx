@@ -12,6 +12,7 @@ import { EvidenceSlot } from "@/components/evidence-slot";
 import { HoldingSlip } from "@/components/holding-slip";
 import { CaseTimeline } from "@/components/mediation/case-timeline";
 import { MediatorActions } from "@/components/mediation/mediator-actions";
+import { ExampleDealNotice } from "@/components/example-deal-notice";
 import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { RoleSwitcher } from "@/components/role-switcher";
 import { ESCALATION_RULE_LABELS } from "@/lib/agents/rules.config";
@@ -39,6 +40,7 @@ export default async function MediatorCasePage({
 
       <DealLiveUpdates dealId={caseFile.id} waiting={caseFile.settlement !== null} />
       <RoleSwitcher dealId={caseFile.id} state={caseFile.state} active="mediator" />
+      {caseFile.isExample ? <ExampleDealNotice actions="the decisions" /> : null}
 
       <HoldingSlip
         amountCents={caseFile.priceCents}
@@ -173,6 +175,7 @@ export default async function MediatorCasePage({
         </section>
       )}
 
+      {caseFile.isExample ? null : (
       <MediatorActions
         caseId={caseFile.id}
         amountCents={caseFile.priceCents}
@@ -181,10 +184,10 @@ export default async function MediatorCasePage({
         settlement={caseFile.settlement}
         canApproveShipping={caseFile.canApproveShipping}
       />
+      )}
 
       <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">
-        Sandbox. A release or refund is queued until PayPal confirms it. The state
-        machine is the only code that starts a payment.
+        Sandbox demo. A release or refund waits until PayPal confirms it.
       </footer>
     </div>
   );

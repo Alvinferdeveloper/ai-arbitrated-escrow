@@ -7,6 +7,7 @@ import { AppBar } from "@/components/app-bar";
 import { AiRetakeRequest } from "@/components/ai-retake-request";
 import { AuditReport } from "@/components/audit-report";
 import { DealOutcomeSection } from "@/components/deal-outcome";
+import { ExampleDealNotice } from "@/components/example-deal-notice";
 import { VerificationCodeCard } from "@/components/verification-code-card";
 import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { EvidenceSlot } from "@/components/evidence-slot";
@@ -61,6 +62,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
   const deadlinePassed = isPast(deal.evidenceDueAt);
   const canUpload =
     isSupabaseConfigured() &&
+    !deal.isExample &&
     !deadlinePassed &&
     (deal.state === "FUNDS_HELD" || deal.state === "EVIDENCE_REJECTED");
   // After a rejection the seller needs the reasons before the upload slots.
@@ -80,10 +82,11 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
     <div className="mt-4 space-y-8">
       <DealLiveUpdates dealId={deal.id} waiting={isWaitingOnSystem(deal.state)} />
       <RoleSwitcher dealId={deal.id} state={deal.state} active="seller" />
+      {deal.isExample ? <ExampleDealNotice actions="uploads" /> : null}
       <HoldingSlip
         amountCents={deal.priceCents}
         state={deal.state}
-        deadline={holdingSlipDeadline(deal)}
+        deadline={deal.isExample ? undefined : holdingSlipDeadline(deal)}
         audience="seller"
       />
 

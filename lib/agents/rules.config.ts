@@ -45,7 +45,7 @@ export const ESCALATION_RULE_LABELS: Record<EscalationRuleId, string> = {
   UNREADABLE_GUIDE: "Unreadable guide",
   CONFLICTING_EVIDENCE: "Conflicting evidence",
   TECHNICAL_FAILURE: "Technical failure",
-  OUT_OF_BAND_REVERSAL: "Out-of-band reversal",
+  OUT_OF_BAND_REVERSAL: "Payment reversed outside the deal",
   HIGH_VALUE: "High-value deal",
   VERIFICATION_CODE: "Verification code missing",
   GUIDE_PREDATES_DEAL: "Guide older than the deal",

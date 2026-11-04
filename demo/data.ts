@@ -1,5 +1,8 @@
+import { toAuditReportView } from "@/lib/agents/report";
+import type { EvidenceAudit } from "@/lib/agents/schemas";
 import { EVIDENCE_SLOT_COPY } from "@/lib/deals/evidence";
 import type {
+  AiDecisionView,
   AuditReportView,
   Deal,
   DealView,
@@ -7,7 +10,8 @@ import type {
   EvidenceView,
 } from "@/lib/deals/types";
 
-// Seeded demo data. No real people, no real PayPal accounts.
+// Example deals: frozen snapshots of one step each, mirrored in supabase/seed.sql.
+// No real people, no real PayPal accounts, no brand names.
 
 export const DEMO_USERS = {
   seller: {
@@ -54,128 +58,86 @@ type DemoDealRecord = Omit<Deal, "autoReleaseAt" | "createdAt"> & {
   autoReleaseInMs: number | null;
   evidence: EvidenceView[];
   audit: AuditReportView | null;
+  aiDecision: AiDecisionView | null;
 };
 
-const honestAudit: AuditReportView = {
-  checks: [
-    {
-      id: "product",
-      label: "Product matches the listing",
-      result: "cleared",
-      detail: "The black headphones in photo A match the model and condition in the listing.",
-    },
-    {
-      id: "packing",
-      label: "Product is inside the packing",
-      result: "cleared",
-      detail: "Photo B shows the same headphones inside the box with the case and cable.",
-    },
-    {
-      id: "parcel",
-      label: "Parcel is sealed with a legible guide",
-      result: "cleared",
-      detail: "Photo C shows the closed parcel and the whole shipping guide.",
-    },
-    {
-      id: "guide",
-      label: "Guide data is readable",
-      result: "cleared",
-      detail: "Carrier, tracking number, weight and date are all legible.",
-    },
-  ],
-  guide: {
-    carrier: "UPS",
-    trackingNumber: "1Z999AA10123456784",
-    weightKg: "1.4 kg",
-    date: "2026-10-28",
+// The raw audits match supabase/seed.sql, so both modes render the same report.
+
+const shippedAudit: EvidenceAudit = {
+  product: {
+    matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
+    expectedWeightKg: 0.7,
+    reason: "The black over-ear headphones in photo A match the model and condition in the listing.",
   },
+  packing: { productInside: true, reason: "Photo B shows the same headphones inside the box with the case and cable." },
+  parcel: { sealed: true, guideVisible: true, reason: "Photo C shows the closed parcel and the whole shipping guide." },
+  guide: {
+    readable: true,
+    carrier: "National Post",
+    trackingNumber: "NP4821773019",
+    weightKg: 0.8,
+    date: "2026-11-02",
+    dateIso: "2026-11-02",
+  },
+  verification: { codeInPhotoA: "H4XR", codeInPhotoC: "H4XR" },
   inconsistencies: [],
-  triggeredRules: [],
 };
 
-const wrongWeightAudit: AuditReportView = {
-  checks: [
-    {
-      id: "product",
-      label: "Product matches the listing",
-      result: "cleared",
-      detail: "Photo A shows a white Switch OLED with the same joy-cons in the listing.",
-    },
-    {
-      id: "packing",
-      label: "Product is inside the packing",
-      result: "cleared",
-      detail: "Photo B shows the console, dock and cables inside the box.",
-    },
-    {
-      id: "parcel",
-      label: "Parcel is sealed with a legible guide",
-      result: "cleared",
-      detail: "Photo C shows a sealed parcel and a full guide.",
-    },
-    {
-      id: "guide",
-      label: "Guide data is readable",
-      result: "cleared",
-      detail: "All four fields on the guide are legible.",
-    },
-  ],
-  guide: {
-    carrier: "USPS",
-    trackingNumber: "9400111899223856928498",
-    weightKg: "0.4 kg",
-    date: "2026-10-28",
+const rejectedAudit: EvidenceAudit = {
+  product: {
+    matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
+    expectedWeightKg: 1.4,
+    reason: "Photo A shows a white handheld console with both controllers, as in the listing.",
   },
+  packing: { productInside: true, reason: "Photo B shows the console, dock and cables inside the box." },
+  parcel: { sealed: true, guideVisible: true, reason: "Photo C shows a sealed parcel and a full guide." },
+  guide: {
+    readable: true,
+    carrier: "City Courier",
+    trackingNumber: "CC55201984",
+    weightKg: 0.4,
+    date: "2026-11-02",
+    dateIso: "2026-11-02",
+  },
+  verification: { codeInPhotoA: "M7KQ", codeInPhotoC: "M7KQ" },
   inconsistencies: [
-    "The guide records 0.4 kg. A Switch OLED with packing usually weighs 1.2 to 1.6 kg.",
+    "The guide records 0.4 kg. This console with its dock and packing usually weighs 1.2 to 1.6 kg.",
   ],
-  triggeredRules: ["WEIGHT_OUT_OF_RANGE"],
 };
 
-const disputeAudit: AuditReportView = {
-  checks: [
-    {
-      id: "product",
-      label: "Product matches the listing",
-      result: "cleared",
-      detail: "Photo A shows the same camera body and lens mount as the listing.",
-    },
-    {
-      id: "packing",
-      label: "Product is inside the packing",
-      result: "cleared",
-      detail: "Photo B shows the camera, battery and charger inside the box.",
-    },
-    {
-      id: "parcel",
-      label: "Parcel is sealed with a legible guide",
-      result: "flagged",
-      detail: "The tape in photo C does not match the tape in the buyer's unboxing photo.",
-    },
-    {
-      id: "guide",
-      label: "Guide data is readable",
-      result: "cleared",
-      detail: "Carrier, tracking number, weight and date are all legible.",
-    },
-  ],
-  guide: {
-    carrier: "FedEx",
-    trackingNumber: "785432109876",
-    weightKg: "1.9 kg",
-    date: "2026-10-27",
+const disputedAudit: EvidenceAudit = {
+  product: {
+    matchesListing: true,
+    differentItem: false,
+    identifierVisible: true,
+    expectedWeightKg: 1.9,
+    reason: "Photo A shows the camera body with the serial number on the base, as in the listing.",
   },
-  inconsistencies: [
-    "The buyer's unboxing photo shows a different serial number.",
-    "The tape in photo C does not match the tape in the buyer's photo D.",
-  ],
-  triggeredRules: ["CONFLICTING_EVIDENCE"],
+  packing: { productInside: true, reason: "Photo B shows the camera, battery and charger inside the box." },
+  parcel: { sealed: true, guideVisible: true, reason: "Photo C shows the parcel sealed with clear tape and the whole guide." },
+  guide: {
+    readable: true,
+    carrier: "National Post",
+    trackingNumber: "NP7854321098",
+    weightKg: 1.9,
+    date: "2026-10-31",
+    dateIso: "2026-10-31",
+  },
+  verification: { codeInPhotoA: "R2DW", codeInPhotoC: "R2DW" },
+  inconsistencies: [],
 };
+
+const REJECTED_RETAKE =
+  "Retake photo C: the guide weight does not fit this product (about 1.4 kg packed); weigh the parcel again and show the corrected guide.";
 
 export const DEMO_DEALS: DemoDealRecord[] = [
   {
     id: "b1111111-1111-4111-8111-111111111111",
-    title: "Sony WH-1000XM4 headphones",
+    title: "Wireless over-ear headphones, black",
     description: "Used for a year, no cracks. Includes the case, cable and original box.",
     priceCents: 3750,
     currency: "USD",
@@ -184,16 +146,18 @@ export const DEMO_DEALS: DemoDealRecord[] = [
     buyer: { id: DEMO_USERS.buyer.id, displayName: DEMO_USERS.buyer.displayName },
     deliveryEstimateDays: 3,
     autoReleaseInMs: 46 * 60 * 60 * 1000,
-    carrier: "UPS",
-    trackingNumber: "1Z999AA10123456784",
-    verificationCode: null,
+    carrier: "National Post",
+    trackingNumber: "NP4821773019",
+    verificationCode: "H4XR",
     isSample: false,
+    isExample: true,
     evidence: [evidence("A"), evidence("B"), evidence("C")],
-    audit: honestAudit,
+    audit: toAuditReportView(shippedAudit, [], { verificationCode: "H4XR", isSample: false }),
+    aiDecision: null,
   },
   {
     id: "b2222222-2222-4222-8222-222222222222",
-    title: "Nintendo Switch OLED, white",
+    title: "Handheld game console, white",
     description: "New, opened once to check the screen. Dock and cables included.",
     priceCents: 9500,
     currency: "USD",
@@ -207,14 +171,23 @@ export const DEMO_DEALS: DemoDealRecord[] = [
     autoReleaseInMs: null,
     carrier: null,
     trackingNumber: null,
-    verificationCode: null,
+    verificationCode: "M7KQ",
     isSample: false,
+    isExample: true,
     evidence: [evidence("A"), evidence("B"), evidence("C")],
-    audit: wrongWeightAudit,
+    audit: toAuditReportView(rejectedAudit, ["WEIGHT_OUT_OF_RANGE"], {
+      verificationCode: "M7KQ",
+      isSample: false,
+    }),
+    aiDecision: {
+      retakes: [{ slot: "C", instruction: REJECTED_RETAKE }],
+      attemptsLeft: 2,
+      detail: REJECTED_RETAKE,
+    },
   },
   {
     id: "b3333333-3333-4333-8333-333333333333",
-    title: "Canon EOS Rebel T7 camera",
+    title: "Mirrorless camera body, 24 MP",
     description: "Body only, 12,000 shutter count. Includes battery and charger.",
     priceCents: 8500,
     currency: "USD",
@@ -226,12 +199,14 @@ export const DEMO_DEALS: DemoDealRecord[] = [
     },
     deliveryEstimateDays: 5,
     autoReleaseInMs: null,
-    carrier: "FedEx",
-    trackingNumber: "785432109876",
-    verificationCode: null,
+    carrier: "National Post",
+    trackingNumber: "NP7854321098",
+    verificationCode: "R2DW",
     isSample: false,
-    evidence: [evidence("A"), evidence("B"), evidence("C")],
-    audit: disputeAudit,
+    isExample: true,
+    evidence: [evidence("A"), evidence("B"), evidence("C"), evidence("D")],
+    audit: toAuditReportView(disputedAudit, [], { verificationCode: "R2DW", isSample: false }),
+    aiDecision: null,
   },
 ];
 
@@ -242,7 +217,6 @@ export function getDemoDeals(now: Date = new Date()): DealView[] {
       autoReleaseInMs === null ? null : new Date(now.getTime() + autoReleaseInMs),
     createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
     evidenceDueAt: null,
-    aiDecision: null,
     closedFrom: null,
     refundReason: null,
   }));

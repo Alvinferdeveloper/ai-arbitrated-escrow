@@ -25,6 +25,8 @@ export type Deal = {
   verificationCode: string | null;
   /** Demo deal started from the sample listing, whose photos were shot in advance. */
   isSample: boolean;
+  /** Seeded snapshot of one step; it never moves and has no live deadline. */
+  isExample: boolean;
   createdAt: Date;
 };
 
@@ -62,7 +64,10 @@ export type AuditReportView = {
   triggeredRules: string[];
 };
 
-export type DealSummary = Pick<Deal, "id" | "title" | "priceCents" | "state" | "seller" | "buyer"> & {
+export type DealSummary = Pick<
+  Deal,
+  "id" | "title" | "priceCents" | "state" | "seller" | "buyer" | "isExample"
+> & {
   updatedAt: Date;
 };
 

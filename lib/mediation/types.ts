@@ -46,6 +46,8 @@ export type MediationCase = {
   settlement: MediationSettlementView | null;
   /** True for a case escalated before the parcel left, with no dispute open. */
   canApproveShipping: boolean;
+  /** Seeded snapshot: shown for reading, never decided. */
+  isExample: boolean;
   timeline: MediationTimelineEntry[];
 };
 

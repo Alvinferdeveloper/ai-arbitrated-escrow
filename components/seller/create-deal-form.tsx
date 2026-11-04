@@ -168,7 +168,7 @@ export function CreateDealForm({
           type="text"
           required
           maxLength={140}
-          placeholder="Sony WH-1000XM4 headphones"
+          placeholder="e.g. Wireless over-ear headphones"
           aria-invalid={Boolean(state.fieldErrors.title)}
           aria-describedby="title-error title-hint"
           className={INPUT}

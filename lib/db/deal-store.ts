@@ -155,6 +155,7 @@ type DealRow = {
   tracking_number: string | null;
   verification_code: string | null;
   is_sample: boolean;
+  is_example: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -256,6 +257,7 @@ type DealSummaryRow = {
   price_cents: number;
   state: DealState;
   updated_at: string;
+  is_example: boolean;
   seller: { id: string; display_name: string } | null;
   buyer: { id: string; display_name: string } | null;
 };
@@ -284,7 +286,7 @@ export async function listDeals(limit = 50): Promise<DealSummary[]> {
   const { data, error } = await getSupabaseAdmin()
     .from("deals")
     .select(
-      "id, title, price_cents, state, updated_at, seller:users!deals_seller_id_fkey(id, display_name), buyer:users!deals_buyer_id_fkey(id, display_name)",
+      "id, title, price_cents, state, updated_at, is_example, seller:users!deals_seller_id_fkey(id, display_name), buyer:users!deals_buyer_id_fkey(id, display_name)",
     )
     .order("updated_at", { ascending: false })
     .limit(limit)
@@ -299,6 +301,7 @@ export async function listDeals(limit = 50): Promise<DealSummary[]> {
     state: row.state,
     seller: summaryParty(row.seller, ""),
     buyer: summaryParty(row.buyer, ""),
+    isExample: row.is_example,
     updatedAt: new Date(row.updated_at),
   }));
 }
@@ -315,7 +318,7 @@ export async function getTrustLinkDeal(
   const { data: deal, error: dealError } = await admin
     .from("deals")
     .select(
-      "id, seller_id, buyer_id, title, description, price_cents, state, delivery_estimate_days, auto_release_at, carrier, tracking_number, verification_code, is_sample, created_at, updated_at",
+      "id, seller_id, buyer_id, title, description, price_cents, state, delivery_estimate_days, auto_release_at, carrier, tracking_number, verification_code, is_sample, is_example, created_at, updated_at",
     )
     .eq("id", id)
     .maybeSingle<DealRow>();
@@ -408,13 +411,14 @@ export async function getTrustLinkDeal(
     trackingNumber: deal.tracking_number,
     verificationCode: deal.verification_code,
     isSample: deal.is_sample,
+    isExample: deal.is_example,
     createdAt: new Date(deal.created_at),
   };
 
   const history = events ?? [];
   const latestEvent = history.find((event) => event.to_state === deal.state);
 
-  const evidenceDue = evidenceDueAt(deal.state, new Date(deal.updated_at));
+  const evidenceDue = deal.is_example ? null : evidenceDueAt(deal.state, new Date(deal.updated_at));
 
   return {
     ...dealBase,

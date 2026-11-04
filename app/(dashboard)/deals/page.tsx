@@ -81,6 +81,9 @@ async function DealsList() {
               {formatMoney(deal.priceCents)}
             </span>
             <StateStamp state={deal.state} />
+            {deal.isExample ? (
+              <span className="text-[0.8125rem] font-medium text-ink-muted">Example</span>
+            ) : null}
             <span className="ml-auto font-mono text-[0.8125rem] tabular-nums text-ink-muted">
               {formatCaseAge(deal.updatedAt, now)}
             </span>

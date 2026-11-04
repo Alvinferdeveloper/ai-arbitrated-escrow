@@ -5,7 +5,7 @@ import type { EvidenceSlot } from "@/lib/deals/types";
 // Photos A and C show DEMO_SAMPLE_VERIFICATION_CODE handwritten on paper.
 
 export const SAMPLE_LISTING = {
-  title: "Sony WH-1000XM4 headphones, black",
+  title: "Wireless over-ear headphones, black",
   description:
     "Used for six months, no scratches. Includes the case and the charging cable.",
   priceUsd: "85.00",

@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
 import { DealOutcomeSection } from "@/components/deal-outcome";
+import { ExampleDealNotice } from "@/components/example-deal-notice";
 import { VerificationCodeCard } from "@/components/verification-code-card";
 import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
@@ -85,7 +86,7 @@ async function TrustLinkContent({
 
   if (!deal) notFound();
 
-  const deadline = holdingSlipDeadline(deal);
+  const deadline = deal.isExample ? undefined : holdingSlipDeadline(deal);
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
   const sentPhotos = sellerEvidence.filter((item) => item.status === "uploaded").length;
   const moneyNote = buyerMoneyNote(deal);
@@ -118,6 +119,7 @@ async function TrustLinkContent({
         waiting={paymentInProgress || isWaitingOnSystem(deal.state)}
       />
       <RoleSwitcher dealId={deal.id} state={deal.state} active="buyer" />
+      {deal.isExample ? <ExampleDealNotice actions="payment, receipt and dispute" /> : null}
       <HoldingSlip
         amountCents={deal.priceCents}
         state={deal.state}
@@ -151,6 +153,7 @@ async function TrustLinkContent({
         </section>
       ) : null}
 
+      {deal.isExample ? null : (
       <BuyerAction
         deal={deal}
         checkoutEnabled={isSupabaseConfigured() && isPayPalConfigured()}
@@ -159,6 +162,7 @@ async function TrustLinkContent({
         settlement={settlement}
         sandboxBuyer={DEMO_MODE ? getSandboxBuyer() : null}
       />
+      )}
 
       {unboxing ? (
         <section aria-labelledby="unboxing-heading" className="space-y-4">

@@ -73,6 +73,7 @@ export async function listDueReleases(limit = 25): Promise<DueDealRow[]> {
     .from("deals")
     .select("id, auto_release_at")
     .eq("state", "SHIPPED")
+    .eq("is_example", false)
     .not("auto_release_at", "is", null)
     .lte("auto_release_at", new Date().toISOString())
     .order("auto_release_at", { ascending: true })

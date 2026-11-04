@@ -1,11 +1,8 @@
+import { toAuditReportView } from "@/lib/agents/report";
 import { ESCALATION_RULE_LABELS } from "@/lib/agents/rules.config";
+import type { EvidenceAudit } from "@/lib/agents/schemas";
 import { EVIDENCE_SLOT_COPY } from "@/lib/deals/evidence";
-import type {
-  AuditCheck,
-  AuditReportView,
-  EvidenceSlot,
-  EvidenceView,
-} from "@/lib/deals/types";
+import type { EvidenceSlot, EvidenceView } from "@/lib/deals/types";
 import { formatCaseAge } from "@/lib/mediation/age";
 import type {
   MediationCase,
@@ -15,15 +12,15 @@ import type {
 } from "@/lib/mediation/types";
 import { DEMO_USERS, getDemoDeal } from "./data";
 
-// Seeded mediation cases for local and no-Supabase mode. Every case is already
-// ESCALATED and the money is held. When Supabase is configured, the same screens
-// read the database instead; these objects are only a visual fallback.
+// Example mediation cases for local and no-Supabase mode, one per reason a
+// person still gets a case: contradicting evidence, a payment reversed outside
+// the deal, and an AI review that failed twice. Mirrored in supabase/seed.sql.
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
-const CANON_DEAL_ID = "b3333333-3333-4333-8333-333333333333";
-const STEAM_DECK_ID = "b4444444-4444-4444-8444-444444444444";
+const CAMERA_ID = "b3333333-3333-4333-8333-333333333333";
+const REVERSAL_ID = "b4444444-4444-4444-8444-444444444444";
 const KEYBOARD_ID = "b5555555-5555-4555-8555-555555555555";
 
 function evidence(slot: EvidenceSlot, uploadedAt: Date): EvidenceView {
@@ -46,74 +43,55 @@ function timelineEntry(
   return { id, at, actor, title, detail };
 }
 
-function clearedChecks(product: string, packing: string, parcel: string, guide: string): AuditCheck[] {
-  return [
-    {
-      id: "product",
-      label: "Product matches the listing",
-      result: "cleared",
-      detail: product,
-    },
-    {
-      id: "packing",
-      label: "Product is inside the packing",
-      result: "cleared",
-      detail: packing,
-    },
-    {
-      id: "parcel",
-      label: "Parcel is sealed with a legible guide",
-      result: "cleared",
-      detail: parcel,
-    },
-    {
-      id: "guide",
-      label: "Guide data is readable",
-      result: "cleared",
-      detail: guide,
-    },
-  ];
-}
-
-const steamAudit: AuditReportView = {
-  checks: clearedChecks(
-    "Photo A shows the Steam Deck OLED and the carrying case in the listing.",
-    "Photo B shows the console, case and charger inside the box.",
-    "Photo C shows a sealed parcel with the whole UPS guide.",
-    "The guide reads 0.9 kg, with carrier, tracking number and date.",
-  ),
-  guide: {
-    carrier: "UPS",
-    trackingNumber: "1Z999AA10198765432",
-    weightKg: "0.9 kg",
-    date: "2026-10-27",
+const reversalAudit: EvidenceAudit = {
+  product: {
+    matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
+    expectedWeightKg: 0.9,
+    reason: "Photo A shows the handheld gaming PC and the carrying case in the listing.",
   },
+  packing: { productInside: true, reason: "Photo B shows the console, case and charger inside the box." },
+  parcel: { sealed: true, guideVisible: true, reason: "Photo C shows a sealed parcel with the whole guide." },
+  guide: {
+    readable: true,
+    carrier: "City Courier",
+    trackingNumber: "CC19876543",
+    weightKg: 0.9,
+    date: "2026-10-31",
+    dateIso: "2026-10-31",
+  },
+  verification: { codeInPhotoA: "P9TB", codeInPhotoC: "P9TB" },
   inconsistencies: [],
-  triggeredRules: [],
 };
 
-const keyboardAudit: AuditReportView = {
-  checks: clearedChecks(
-    "Photo A shows the Keychron K2 and its keycaps as described.",
-    "Photo B shows the keyboard and cable inside the box.",
-    "Photo C shows the sealed parcel and a legible guide.",
-    "The guide reads 1.1 kg, with carrier, tracking number and date.",
-  ),
-  guide: {
-    carrier: "USPS",
-    trackingNumber: "9400111899223856123456",
-    weightKg: "1.1 kg",
-    date: "2026-10-26",
+const keyboardAudit: EvidenceAudit = {
+  product: {
+    matchesListing: true,
+    differentItem: false,
+    identifierVisible: false,
+    expectedWeightKg: 1.1,
+    reason: "Photo A shows the mechanical keyboard and its keycaps as described.",
   },
+  packing: { productInside: true, reason: "Photo B shows the keyboard and cable inside the box." },
+  parcel: { sealed: true, guideVisible: true, reason: "Photo C shows the sealed parcel and a legible guide." },
+  guide: {
+    readable: true,
+    carrier: "National Post",
+    trackingNumber: "NP9400112233",
+    weightKg: 1.1,
+    date: "2026-10-30",
+    dateIso: "2026-10-30",
+  },
+  verification: { codeInPhotoA: "W3NF", codeInPhotoC: "W3NF" },
   inconsistencies: [],
-  triggeredRules: [],
 };
 
-function buildCanonCase(now: Date): MediationCase {
-  const deal = getDemoDeal(CANON_DEAL_ID, now);
+function buildCameraCase(now: Date): MediationCase {
+  const deal = getDemoDeal(CAMERA_ID, now);
 
   if (!deal?.audit) {
-    throw new Error("The Canon demo deal is missing from demo/data.ts");
+    throw new Error("The camera example deal is missing from demo/data.ts");
   }
 
   return {
@@ -124,10 +102,9 @@ function buildCanonCase(now: Date): MediationCase {
     seller: deal.seller,
     buyer: deal.buyer,
     reason: "CONFLICTING_EVIDENCE",
-    reasonDetail:
-      "Photo C and photo D disagree on the parcel tape and the serial number.",
+    reasonDetail: "Photo C and photo D disagree on the parcel tape and the serial number.",
     summary:
-      "The buyer's unboxing photo shows a different serial number and tape than the seller's sealed parcel. The rule asks for a person.",
+      "The buyer's unboxing photo shows a different serial number and tape than the seller's sealed parcel. The AI cannot tell who is right, so a person decides.",
     claim:
       "The box arrived with a different camera body, and the tape was already cut when it reached me.",
     openedAt: new Date(now.getTime() - 6 * HOUR - 12 * MINUTE),
@@ -135,116 +112,48 @@ function buildCanonCase(now: Date): MediationCase {
     buyerEvidence: [evidence("D", new Date(now.getTime() - 7 * HOUR))],
     audit: deal.audit,
     settlement: null,
-    // Every seeded case comes from a dispute: the parcel already left.
     canApproveShipping: false,
+    isExample: true,
     timeline: [
-      timelineEntry(
-        "canon-payment",
-        new Date(now.getTime() - 50 * HOUR),
-        "system",
-        "Payment captured",
-        "85.00 USD is held in the platform account.",
-      ),
-      timelineEntry(
-        "canon-evidence",
-        new Date(now.getTime() - 48 * HOUR),
-        "seller",
-        "Seller uploaded photos A, B and C",
-        "The guide shows FedEx 785432109876, 1.9 kg.",
-      ),
-      timelineEntry(
-        "canon-audit",
-        new Date(now.getTime() - 47 * HOUR),
-        "ai",
-        "Audit completed",
-        "Four checks passed and two inconsistencies were recorded.",
-      ),
-      timelineEntry(
-        "canon-dispute",
-        new Date(now.getTime() - 7 * HOUR),
-        "buyer",
-        "Buyer opened a dispute",
-        "The buyer uploaded photo D and described a different serial number.",
-      ),
-      timelineEntry(
-        "canon-escalated",
-        new Date(now.getTime() - 6 * HOUR - 12 * MINUTE),
-        "system",
-        "Escalated: conflicting evidence",
-        "The rule sent the case to a mediator. The money stays held.",
-      ),
+      timelineEntry("camera-payment", new Date(now.getTime() - 50 * HOUR), "system", "Payment captured", "85.00 USD is held in the platform account."),
+      timelineEntry("camera-evidence", new Date(now.getTime() - 48 * HOUR), "seller", "Seller uploaded photos A, B and C", "The guide shows National Post NP7854321098, 1.9 kg."),
+      timelineEntry("camera-audit", new Date(now.getTime() - 47 * HOUR), "ai", "Audit passed", "Every check passed and the deal shipped."),
+      timelineEntry("camera-dispute", new Date(now.getTime() - 7 * HOUR), "buyer", "Buyer opened a dispute", "The buyer uploaded photo D and described a different serial number."),
+      timelineEntry("camera-escalated", new Date(now.getTime() - 6 * HOUR - 12 * MINUTE), "ai", "Escalated: conflicting evidence", "Photo C and photo D contradict each other. The money stays held."),
     ],
   };
 }
 
-function buildSteamDeckCase(now: Date): MediationCase {
+function buildReversalCase(now: Date): MediationCase {
   return {
-    id: STEAM_DECK_ID,
+    id: REVERSAL_ID,
     state: "ESCALATED",
-    title: "Steam Deck OLED, 512 GB",
+    title: "Handheld gaming PC, 512 GB",
     priceCents: 10000,
-    seller: {
-      id: DEMO_USERS.secondSeller.id,
-      displayName: DEMO_USERS.secondSeller.displayName,
-    },
-    buyer: {
-      id: DEMO_USERS.secondBuyer.id,
-      displayName: DEMO_USERS.secondBuyer.displayName,
-    },
-    reason: "WEIGHT_OUT_OF_RANGE",
+    seller: { id: DEMO_USERS.secondSeller.id, displayName: DEMO_USERS.secondSeller.displayName },
+    buyer: { id: DEMO_USERS.secondBuyer.id, displayName: DEMO_USERS.secondBuyer.displayName },
+    reason: "OUT_OF_BAND_REVERSAL",
     reasonDetail:
-      "The buyer weighed the parcel at 0.4 kg. The guide records 0.9 kg.",
+      "PayPal reversed the buyer's payment outside the deal, after the parcel had shipped.",
     summary:
-      "The parcel arrived much lighter than the guide says. The buyer says the dock and the carrying case were missing.",
-    claim:
-      "The parcel felt too light. The dock and the carrying case were missing from the box.",
+      "The buyer claimed the payment back through PayPal instead of opening a dispute here. The evidence passed and the parcel shipped, so a person decides what the seller is owed.",
+    claim: "No dispute was opened here. The buyer went straight to PayPal.",
     openedAt: new Date(now.getTime() - 28 * HOUR),
     sellerEvidence: [
       evidence("A", new Date(now.getTime() - 47 * HOUR)),
       evidence("B", new Date(now.getTime() - 47 * HOUR)),
       evidence("C", new Date(now.getTime() - 47 * HOUR)),
     ],
-    buyerEvidence: [evidence("D", new Date(now.getTime() - 30 * HOUR))],
-    audit: steamAudit,
+    buyerEvidence: [],
+    audit: toAuditReportView(reversalAudit, [], { verificationCode: "P9TB", isSample: false }),
     settlement: null,
-    // Every seeded case comes from a dispute: the parcel already left.
     canApproveShipping: false,
+    isExample: true,
     timeline: [
-      timelineEntry(
-        "steam-payment",
-        new Date(now.getTime() - 50 * HOUR),
-        "system",
-        "Payment captured",
-        "100.00 USD is held in the platform account.",
-      ),
-      timelineEntry(
-        "steam-evidence",
-        new Date(now.getTime() - 47 * HOUR),
-        "seller",
-        "Seller uploaded photos A, B and C",
-        "The guide shows UPS 1Z999AA10198765432, 0.9 kg.",
-      ),
-      timelineEntry(
-        "steam-audit",
-        new Date(now.getTime() - 46 * HOUR),
-        "ai",
-        "Audit passed",
-        "The four checks passed and the deal was marked as shipped.",
-      ),
-      timelineEntry(
-        "steam-dispute",
-        new Date(now.getTime() - 30 * HOUR),
-        "buyer",
-        "Buyer opened a dispute",
-        "The buyer uploaded photo D and recorded 0.4 kg on a kitchen scale.",
-      ),
-      timelineEntry(
-        "steam-escalated",
-        new Date(now.getTime() - 28 * HOUR),
-        "ai",
-        "Escalated: weight out of range",
-        "The buyer's weight is below the expected range. The money stays held.",
-      ),
+      timelineEntry("reversal-payment", new Date(now.getTime() - 50 * HOUR), "system", "Payment captured", "100.00 USD is held in the platform account."),
+      timelineEntry("reversal-evidence", new Date(now.getTime() - 47 * HOUR), "seller", "Seller uploaded photos A, B and C", "The guide shows City Courier CC19876543, 0.9 kg."),
+      timelineEntry("reversal-audit", new Date(now.getTime() - 46 * HOUR), "ai", "Audit passed", "Every check passed and the deal shipped."),
+      timelineEntry("reversal-escalated", new Date(now.getTime() - 28 * HOUR), "system", "Escalated: payment reversed outside the deal", "PayPal reported a reversal of the buyer's payment. The deal stops until a person decides."),
     ],
   };
 }
@@ -253,21 +162,14 @@ function buildKeyboardCase(now: Date): MediationCase {
   return {
     id: KEYBOARD_ID,
     state: "ESCALATED",
-    title: "Keychron K2 mechanical keyboard",
+    title: "Mechanical keyboard, brown switches",
     priceCents: 4500,
-    seller: {
-      id: DEMO_USERS.seller.id,
-      displayName: DEMO_USERS.seller.displayName,
-    },
-    buyer: {
-      id: DEMO_USERS.buyer.id,
-      displayName: DEMO_USERS.buyer.displayName,
-    },
+    seller: { id: DEMO_USERS.seller.id, displayName: DEMO_USERS.seller.displayName },
+    buyer: { id: DEMO_USERS.buyer.id, displayName: DEMO_USERS.buyer.displayName },
     reason: "TECHNICAL_FAILURE",
-    reasonDetail:
-      "The arbitration model returned invalid output twice. The retry did not recover.",
+    reasonDetail: "The AI review of the dispute failed twice. The retry did not recover.",
     summary:
-      "The seller's evidence passed, but the automatic dispute review failed before it could compare both sides. A person needs to read the photos.",
+      "The seller's evidence passed, but the AI review of the dispute failed before it could compare both sides. A person reads the photos instead.",
     claim:
       "Two switches are broken and the space bar sticks. The seller says the keyboard was tested before shipping.",
     openedAt: new Date(now.getTime() - 26 * HOUR),
@@ -277,59 +179,22 @@ function buildKeyboardCase(now: Date): MediationCase {
       evidence("C", new Date(now.getTime() - 77 * HOUR)),
     ],
     buyerEvidence: [evidence("D", new Date(now.getTime() - 30 * HOUR))],
-    audit: keyboardAudit,
+    audit: toAuditReportView(keyboardAudit, [], { verificationCode: "W3NF", isSample: false }),
     settlement: null,
-    // Every seeded case comes from a dispute: the parcel already left.
     canApproveShipping: false,
+    isExample: true,
     timeline: [
-      timelineEntry(
-        "keyboard-payment",
-        new Date(now.getTime() - 80 * HOUR),
-        "system",
-        "Payment captured",
-        "45.00 USD is held in the platform account.",
-      ),
-      timelineEntry(
-        "keyboard-evidence",
-        new Date(now.getTime() - 77 * HOUR),
-        "seller",
-        "Seller uploaded photos A, B and C",
-        "The guide shows USPS 9400111899223856123456, 1.1 kg.",
-      ),
-      timelineEntry(
-        "keyboard-shipped",
-        new Date(now.getTime() - 75 * HOUR),
-        "ai",
-        "Audit passed",
-        "The seller's evidence passed and the deal was marked as shipped.",
-      ),
-      timelineEntry(
-        "keyboard-dispute",
-        new Date(now.getTime() - 30 * HOUR),
-        "buyer",
-        "Buyer opened a dispute",
-        "The buyer uploaded photo D and described two broken switches.",
-      ),
-      timelineEntry(
-        "keyboard-failure",
-        new Date(now.getTime() - 28 * HOUR),
-        "ai",
-        "Dispute review failed",
-        "The model returned invalid output. The cron retry failed again.",
-      ),
-      timelineEntry(
-        "keyboard-escalated",
-        new Date(now.getTime() - 26 * HOUR),
-        "system",
-        "Escalated: technical failure",
-        "A person needs to review the evidence. The money stays held.",
-      ),
+      timelineEntry("keyboard-payment", new Date(now.getTime() - 80 * HOUR), "system", "Payment captured", "45.00 USD is held in the platform account."),
+      timelineEntry("keyboard-evidence", new Date(now.getTime() - 77 * HOUR), "seller", "Seller uploaded photos A, B and C", "The guide shows National Post NP9400112233, 1.1 kg."),
+      timelineEntry("keyboard-shipped", new Date(now.getTime() - 75 * HOUR), "ai", "Audit passed", "Every check passed and the deal shipped."),
+      timelineEntry("keyboard-dispute", new Date(now.getTime() - 30 * HOUR), "buyer", "Buyer opened a dispute", "The buyer uploaded photo D and described two broken switches."),
+      timelineEntry("keyboard-escalated", new Date(now.getTime() - 26 * HOUR), "system", "Escalated: technical failure", "The AI review failed twice. The money stays held."),
     ],
   };
 }
 
 export function getDemoMediationCases(now: Date = new Date()): MediationCase[] {
-  return [buildCanonCase(now), buildSteamDeckCase(now), buildKeyboardCase(now)].sort(
+  return [buildCameraCase(now), buildReversalCase(now), buildKeyboardCase(now)].sort(
     (left, right) => left.openedAt.getTime() - right.openedAt.getTime(),
   );
 }
@@ -353,4 +218,3 @@ export function getDemoMediationQueue(now: Date = new Date()): MediationQueueRow
     state: "ESCALATED",
   }));
 }
-

@@ -92,6 +92,7 @@ export async function listPendingTracking(limit: number): Promise<string[]> {
     .from("deals")
     .select("id")
     .eq("state", "SHIPPED")
+    .eq("is_example", false)
     .is("tracking_registered_at", null)
     .lt("tracking_attempts", TRACKING_MAX_ATTEMPTS)
     .order("shipped_at", { ascending: true })

@@ -40,7 +40,7 @@ export async function listOverdueEvidenceDeals(
   before: Date,
   limit: number,
 ): Promise<OverdueEvidenceDeal[]> {
-  // Seeded deals carry placeholder captures (DEMO-...) that PayPal cannot refund.
+  // Example deals carry placeholder captures that PayPal cannot refund.
   const { data, error } = await getSupabaseAdmin()
     .from("deals")
     .select("id, state, payments!inner(purpose, paypal_capture_id)")
@@ -48,7 +48,7 @@ export async function listOverdueEvidenceDeals(
     .lt("updated_at", before.toISOString())
     .eq("payments.purpose", "CAPTURE")
     .not("payments.paypal_capture_id", "is", null)
-    .not("payments.paypal_capture_id", "like", "DEMO-%")
+    .eq("is_example", false)
     .order("updated_at", { ascending: true })
     .limit(limit)
     .returns<OverdueEvidenceDeal[]>();
