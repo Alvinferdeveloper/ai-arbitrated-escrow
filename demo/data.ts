@@ -243,6 +243,8 @@ export function getDemoDeals(now: Date = new Date()): DealView[] {
     createdAt: new Date(now.getTime() - 3 * 60 * 60 * 1000),
     evidenceDueAt: null,
     aiDecision: null,
+    closedFrom: null,
+    refundReason: null,
   }));
 }
 

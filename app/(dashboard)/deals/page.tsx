@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { AlertCircle } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
-import { dealRoleHref } from "@/components/role-switcher";
+import { dealRoleHref, rolesFor } from "@/components/role-switcher";
 import { StateStamp } from "@/components/state-stamp";
 import { ButtonLink } from "@/components/ui/button";
 import { getDemoDeals } from "@/demo/data";
@@ -92,7 +92,7 @@ async function DealsList() {
             </p>
           </div>
           <div className="flex flex-wrap gap-x-5">
-            {(["buyer", "seller", "mediator"] as const).map((role) => (
+            {rolesFor(deal.state).map((role) => (
               <Link
                 key={role}
                 href={dealRoleHref(role, deal.id, deal.state)}

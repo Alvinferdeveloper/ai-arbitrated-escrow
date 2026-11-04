@@ -6,6 +6,7 @@ import { AlertCircle, ArrowLeft } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
 import { AiRetakeRequest } from "@/components/ai-retake-request";
 import { AuditReport } from "@/components/audit-report";
+import { DealOutcomeSection } from "@/components/deal-outcome";
 import { VerificationCodeCard } from "@/components/verification-code-card";
 import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { EvidenceSlot } from "@/components/evidence-slot";
@@ -16,6 +17,7 @@ import { getDemoDeal } from "@/demo/data";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import { holdingSlipDeadline } from "@/lib/deals/deadline";
+import { dealOutcome } from "@/lib/deals/story";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
 import { isWaitingOnSystem } from "@/lib/state-machine/presentation";
@@ -59,6 +61,16 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
     isSupabaseConfigured() && (deal.state === "FUNDS_HELD" || deal.state === "EVIDENCE_REJECTED");
   // After a rejection the seller needs the reasons before the upload slots.
   const rejectedAudit = deal.state === "EVIDENCE_REJECTED" ? deal.audit : null;
+  const outcome = dealOutcome(
+    {
+      state: deal.state,
+      priceCents: deal.priceCents,
+      sellerName: deal.seller.displayName,
+      closedFrom: deal.closedFrom,
+      refundReason: deal.refundReason,
+    },
+    "seller",
+  );
 
   return (
     <div className="mt-4 space-y-8">
@@ -68,6 +80,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         amountCents={deal.priceCents}
         state={deal.state}
         deadline={holdingSlipDeadline(deal)}
+        audience="seller"
       />
 
       <section aria-labelledby="deal-title" className="space-y-2">
@@ -93,7 +106,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         ) : null}
       </section>
 
-      <SellerNextStep deal={deal} />
+      {outcome ? <DealOutcomeSection outcome={outcome} /> : <SellerNextStep deal={deal} />}
 
       {deal.state === "EVIDENCE_REJECTED" && deal.aiDecision ? (
         <AiRetakeRequest decision={deal.aiDecision} />
@@ -156,10 +169,6 @@ function SellerNextStep({ deal }: { deal: DealView }) {
         ? "Send all three photos again with the changes below, before the deadline in the slip above."
         : "Send all three photos again before the deadline in the slip above. The audit report shows what did not pass.",
     },
-    REFUNDING: {
-      title: "Deal cancelled by the AI",
-      body: deal.aiDecision?.detail ?? "The AI cancelled the deal and is refunding the buyer.",
-    },
     SHIPPED: {
       title: "Send the parcel",
       body: `The evidence passed. The money is released when ${deal.buyer.displayName} confirms receipt or the deadline passes.`,
@@ -170,7 +179,7 @@ function SellerNextStep({ deal }: { deal: DealView }) {
     },
     ARBITRATING: {
       title: "Comparing both sides",
-      body: "The buyer's unboxing photo is being compared with your evidence. If they disagree, a person decides.",
+      body: "The buyer's unboxing photo is being compared with your evidence. If they contradict each other, a mediator decides.",
     },
     ESCALATED: {
       title: "With a mediator",

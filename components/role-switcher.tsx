@@ -9,6 +9,11 @@ const ROLES: { role: DealRole; label: string }[] = [
   { role: "mediator", label: "Mediator" },
 ];
 
+/** A mediator only ever sees escalated deals, so the role is offered only then. */
+export function rolesFor(state: DealState): DealRole[] {
+  return state === "ESCALATED" ? ["buyer", "seller", "mediator"] : ["buyer", "seller"];
+}
+
 export function dealRoleHref(role: DealRole, dealId: string, state: DealState): string {
   if (role === "buyer") return `/t/${dealId}`;
   if (role === "seller") return `/seller/${dealId}`;
@@ -29,7 +34,7 @@ export function RoleSwitcher({
     <nav aria-label="View this deal as" className="flex items-center gap-3">
       <span className="text-[0.8125rem] font-medium text-ink-muted">View as</span>
       <div className="inline-flex rounded-md border border-rule-line bg-sheet p-0.5">
-        {ROLES.map(({ role, label }) => {
+        {ROLES.filter(({ role }) => rolesFor(state).includes(role)).map(({ role, label }) => {
           const current = role === active;
           return (
             <Link

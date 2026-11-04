@@ -4,6 +4,7 @@ import { AlertCircle } from "lucide-react";
 import { connection } from "next/server";
 import { AppBar } from "@/components/app-bar";
 import { AuditReport } from "@/components/audit-report";
+import { DealOutcomeSection } from "@/components/deal-outcome";
 import { VerificationCodeCard } from "@/components/verification-code-card";
 import { DealLiveUpdates } from "@/components/deal-live-updates";
 import { ConfirmReceiptForm } from "@/components/buyer/confirm-receipt-form";
@@ -16,6 +17,12 @@ import { RoleSwitcher } from "@/components/role-switcher";
 import { getDemoDeal } from "@/demo/data";
 import { holdingSlipDeadline } from "@/lib/deals/deadline";
 import { formatMoney } from "@/lib/deals/money";
+import {
+  buyerMoneyNote,
+  dealOutcome,
+  missingEvidenceNote,
+  showsVerificationCode,
+} from "@/lib/deals/story";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
 import { isWaitingOnSystem } from "@/lib/state-machine/presentation";
@@ -80,6 +87,18 @@ async function TrustLinkContent({
 
   const deadline = holdingSlipDeadline(deal);
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
+  const sentPhotos = sellerEvidence.filter((item) => item.status === "uploaded").length;
+  const moneyNote = buyerMoneyNote(deal);
+  const outcome = dealOutcome(
+    {
+      state: deal.state,
+      priceCents: deal.priceCents,
+      sellerName: deal.seller.displayName,
+      closedFrom: deal.closedFrom,
+      refundReason: deal.refundReason,
+    },
+    "buyer",
+  );
   const unboxing = deal.evidence.find((item) => item.slot === "D" && item.status === "uploaded");
 
   const paymentResult =
@@ -103,6 +122,7 @@ async function TrustLinkContent({
         amountCents={deal.priceCents}
         state={deal.state}
         deadline={deadline}
+        audience="buyer"
       />
 
       <PaymentNotice status={notice} />
@@ -123,13 +143,13 @@ async function TrustLinkContent({
         </p>
       </section>
 
-      <section className="rounded-lg border border-rule-line bg-kraft p-4">
-        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
-          {deal.state === "AWAITING_PAYMENT"
-            ? `When you pay, we hold ${formatMoney(deal.priceCents)} instead of the seller. They are paid only after you confirm the parcel arrived or the deadline passes; if their evidence fails, the AI refunds you.`
-            : `We are holding ${formatMoney(deal.priceCents)} until you confirm the parcel arrived. If something is wrong, open a dispute before the deadline. Every decision is written in the record below.`}
-        </p>
-      </section>
+      {outcome ? <DealOutcomeSection outcome={outcome} /> : null}
+
+      {moneyNote ? (
+        <section className="rounded-lg border border-rule-line bg-kraft p-4">
+          <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">{moneyNote}</p>
+        </section>
+      ) : null}
 
       <BuyerAction
         deal={deal}
@@ -154,7 +174,7 @@ async function TrustLinkContent({
         </section>
       ) : null}
 
-      {deal.verificationCode && deal.state !== "AWAITING_PAYMENT" ? (
+      {deal.verificationCode && showsVerificationCode(deal.state, sentPhotos > 0) ? (
         <VerificationCodeCard
           code={deal.verificationCode}
           audience="buyer"
@@ -170,21 +190,29 @@ async function TrustLinkContent({
           >
             Seller evidence
           </h2>
-          <span className="text-[0.8125rem] text-ink-muted">
-            {sellerEvidence.length} photos
-          </span>
+          {sentPhotos > 0 ? (
+            <span className="text-[0.8125rem] text-ink-muted">
+              {sentPhotos} of {sellerEvidence.length} photos
+            </span>
+          ) : null}
         </div>
-        <div className="grid gap-4 sm:grid-cols-3">
-          {sellerEvidence.map((item) => (
-            <EvidenceSlot key={item.slot} evidence={item} />
-          ))}
-        </div>
+        {sentPhotos > 0 ? (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {sellerEvidence.map((item) => (
+              <EvidenceSlot key={item.slot} evidence={item} />
+            ))}
+          </div>
+        ) : (
+          <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+            {missingEvidenceNote(deal.state)}
+          </p>
+        )}
       </section>
 
       {deal.audit ? (
         <AuditReport audit={deal.audit} />
-      ) : (
-        <section aria-labelledby="audit-empty-heading" className="space-y-2">
+      ) : deal.state === "AUDITING" ? (
+        <section aria-labelledby="audit-empty-heading" className="space-y-2" aria-live="polite">
           <h2
             id="audit-empty-heading"
             className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
@@ -192,11 +220,10 @@ async function TrustLinkContent({
             Audit report
           </h2>
           <p className="text-[0.9375rem] leading-[1.55] text-ink-muted">
-            The photos have not been audited yet. Nothing moves until the record is
-            written.
+            The AI is auditing the photos now. This page updates by itself.
           </p>
         </section>
-      )}
+      ) : null}
 
       <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">
         Sandbox demo. No real money moves.
@@ -418,23 +445,6 @@ function BuyerAction({
           {deal.seller.displayName}&apos;s photos did not pass the audit, so nothing has
           shipped. If the new photos do not pass before the deadline, you are refunded
           automatically.
-        </p>
-      </section>
-    );
-  }
-
-  if (deal.state === "REFUNDING") {
-    return (
-      <section aria-labelledby="buyer-action-heading" className="space-y-2">
-        <h2
-          id="buyer-action-heading"
-          className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-        >
-          You are being refunded
-        </h2>
-        <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-          {deal.aiDecision?.detail ?? "The AI cancelled the deal."} The refund of{" "}
-          {formatMoney(deal.priceCents)} is with PayPal and lands once PayPal confirms it.
         </p>
       </section>
     );

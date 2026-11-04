@@ -1,3 +1,4 @@
+import type { AiRefundReason } from "@/lib/state-machine/ai-refund";
 import type { DealState } from "@/lib/state-machine/states";
 
 // Read models shared by the demo screens and, later, the Supabase queries.
@@ -83,4 +84,8 @@ export type DealView = Deal & {
   /** Set while the seller owes valid evidence; the buyer is refunded after it. */
   evidenceDueAt: Date | null;
   aiDecision: AiDecisionView | null;
+  /** The state the deal left to reach its current one; tells how a final deal ended. */
+  closedFrom: DealState | null;
+  /** Why the AI refunded the buyer, when it did. */
+  refundReason: AiRefundReason | null;
 };

@@ -16,6 +16,7 @@ import type {
   EvidenceView,
 } from "@/lib/deals/types";
 import type { CreateDealData } from "@/lib/deals/schema";
+import { AI_REFUND_REASONS, type AiRefundReason } from "@/lib/state-machine/ai-refund";
 import type { DealState } from "@/lib/state-machine/states";
 import { getSupabaseAdmin } from "./server";
 
@@ -172,6 +173,23 @@ function toAiDecision(payload: unknown): AiDecisionView | null {
 
 const WAITING_FOR_EVIDENCE: readonly DealState[] = ["FUNDS_HELD", "EVIDENCE_REJECTED"];
 
+/** Newest first; enough to cover retakes, a dispute and the settlement. */
+const EVENT_HISTORY_LIMIT = 30;
+
+type EventRow = {
+  from_state: DealState | null;
+  to_state: DealState;
+  payload: unknown;
+};
+
+const refundPayloadSchema = z.object({ reason: z.enum(AI_REFUND_REASONS) });
+
+function refundReasonFrom(history: readonly EventRow[]): AiRefundReason | null {
+  const refund = history.find((event) => event.to_state === "REFUNDING");
+  const parsed = refundPayloadSchema.safeParse(refund?.payload);
+  return parsed.success ? parsed.data.reason : null;
+}
+
 type EvidenceRow = {
   id: string;
   type: EvidenceSlot;
@@ -310,7 +328,7 @@ export async function getTrustLinkDeal(
     { data: evidenceRows, error: evidenceError },
     { data: audit, error: auditError },
     { data: users, error: usersError },
-    { data: latestEvent, error: eventError },
+    { data: events, error: eventError },
   ] = await Promise.all([
     admin
       .from("evidence")
@@ -335,12 +353,11 @@ export async function getTrustLinkDeal(
       .returns<UserOptionRow[]>(),
     admin
       .from("events")
-      .select("payload")
+      .select("from_state, to_state, payload")
       .eq("deal_id", deal.id)
-      .eq("to_state", deal.state)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle<{ payload: unknown }>(),
+      .limit(EVENT_HISTORY_LIMIT)
+      .returns<EventRow[]>(),
   ]);
 
   if (evidenceError) fail("Could not load the deal evidence", evidenceError.message);
@@ -395,6 +412,9 @@ export async function getTrustLinkDeal(
     createdAt: new Date(deal.created_at),
   };
 
+  const history = events ?? [];
+  const latestEvent = history.find((event) => event.to_state === deal.state);
+
   const evidenceDueAt = WAITING_FOR_EVIDENCE.includes(deal.state)
     ? new Date(new Date(deal.updated_at).getTime() + EVIDENCE_DEADLINE_MS)
     : null;
@@ -405,5 +425,7 @@ export async function getTrustLinkDeal(
     audit: auditView,
     evidenceDueAt,
     aiDecision: latestEvent ? toAiDecision(latestEvent.payload) : null,
+    closedFrom: latestEvent?.from_state ?? null,
+    refundReason: refundReasonFrom(history),
   };
 }

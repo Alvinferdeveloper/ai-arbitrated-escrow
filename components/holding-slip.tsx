@@ -1,5 +1,5 @@
 import { formatMoney } from "@/lib/deals/money";
-import { STATE_PRESENTATION } from "@/lib/state-machine/presentation";
+import { nextActionFor, type SlipAudience } from "@/lib/state-machine/presentation";
 import type { DealState } from "@/lib/state-machine/states";
 import { StateStamp } from "./state-stamp";
 
@@ -13,12 +13,14 @@ export function HoldingSlip({
   amountCents,
   state,
   deadline,
+  audience,
 }: {
   amountCents: number;
   state: DealState;
   deadline?: string;
+  /** Addresses the reader as "you"; omitted on neutral previews. */
+  audience?: SlipAudience;
 }) {
-  const presentation = STATE_PRESENTATION[state];
 
   return (
     <section
@@ -36,7 +38,7 @@ export function HoldingSlip({
       </div>
       <div className="mt-5 border-t border-dashed border-rule-line pt-4">
         <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
-          {presentation.nextAction}
+          {nextActionFor(state, audience)}
         </p>
         {deadline ? (
           <p className="mt-2 font-mono text-[0.875rem] tabular-nums text-ink-muted">
