@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, BookOpen } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
 import { dealRoleHref, rolesFor } from "@/components/role-switcher";
 import { StateStamp } from "@/components/state-stamp";
@@ -71,7 +71,40 @@ async function DealsList() {
   }
 
   const now = new Date();
+  const real = deals.filter((deal) => !deal.isExample);
+  const examples = deals.filter((deal) => deal.isExample);
 
+  return (
+    <div className="space-y-10">
+      {real.length > 0 ? <DealRows deals={real} now={now} /> : null}
+      {examples.length > 0 ? (
+        <section aria-labelledby="examples-heading" className="space-y-3">
+          <div>
+            <h2 id="examples-heading" className="text-[1.125rem] font-semibold leading-[1.35] text-ink">
+              Example deals
+            </h2>
+            <p className="mt-1 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+              Read-only snapshots, each frozen at one step to show its screens. Nothing in
+              them moves; create a deal to run the real flow.
+            </p>
+          </div>
+          <DealRows deals={examples} now={now} />
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function ExampleTag() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-sm border border-rule-line bg-kraft px-2 py-1 text-[0.8125rem] font-medium leading-none text-ink">
+      <BookOpen aria-hidden="true" size={16} strokeWidth={1.75} />
+      Example
+    </span>
+  );
+}
+
+function DealRows({ deals, now }: { deals: DealSummary[]; now: Date }) {
   return (
     <ul className="divide-y divide-rule-line border-y border-rule-line">
       {deals.map((deal) => (
@@ -81,12 +114,12 @@ async function DealsList() {
               {formatMoney(deal.priceCents)}
             </span>
             <StateStamp state={deal.state} />
-            {deal.isExample ? (
-              <span className="text-[0.8125rem] font-medium text-ink-muted">Example</span>
-            ) : null}
-            <span className="ml-auto font-mono text-[0.8125rem] tabular-nums text-ink-muted">
-              {formatCaseAge(deal.updatedAt, now)}
-            </span>
+            {deal.isExample ? <ExampleTag /> : null}
+            {deal.isExample ? null : (
+              <span className="ml-auto font-mono text-[0.8125rem] tabular-nums text-ink-muted">
+                {formatCaseAge(deal.updatedAt, now)}
+              </span>
+            )}
           </div>
           <div>
             <p className="text-[0.9375rem] font-medium text-ink">{deal.title}</p>
