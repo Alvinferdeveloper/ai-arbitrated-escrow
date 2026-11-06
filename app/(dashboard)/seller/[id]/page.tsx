@@ -133,6 +133,10 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
 
       {deal.state === "AUDITING" ? <AuditRunning /> : null}
 
+      {deal.audit && deal.state !== "AUDITING" && !rejectedAudit ? (
+        <AuditReport audit={deal.audit} />
+      ) : null}
+
       {!canUpload && sellerEvidence.some((item) => item.status === "uploaded") ? (
         <section aria-labelledby="evidence-heading" className="space-y-4">
           <h2
@@ -147,10 +151,6 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
             ))}
           </div>
         </section>
-      ) : null}
-
-      {deal.audit && deal.state !== "AUDITING" && !rejectedAudit ? (
-        <AuditReport audit={deal.audit} />
       ) : null}
 
       <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">

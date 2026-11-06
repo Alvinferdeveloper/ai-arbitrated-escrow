@@ -14,7 +14,11 @@ export function EvidenceSlot({ evidence }: { evidence: EvidenceView }) {
           className="aspect-[4/3] w-full bg-kraft object-cover"
         />
       ) : (
-        <div className="relative flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-kraft p-6 text-center">
+        <div
+          className={`relative flex flex-col items-center justify-center gap-2 bg-kraft p-6 text-center ${
+            uploaded ? "h-28" : "aspect-[4/3]"
+          }`}
+        >
           <span
             aria-hidden="true"
             className="font-mono text-[2rem] leading-none text-ink-muted"

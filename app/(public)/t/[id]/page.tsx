@@ -178,6 +178,22 @@ async function TrustLinkContent({
         </section>
       ) : null}
 
+      {deal.audit ? (
+        <AuditReport audit={deal.audit} />
+      ) : deal.state === "AUDITING" ? (
+        <section aria-labelledby="audit-empty-heading" className="space-y-2" aria-live="polite">
+          <h2
+            id="audit-empty-heading"
+            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
+          >
+            Audit report
+          </h2>
+          <p className="text-[0.9375rem] leading-[1.55] text-ink-muted">
+            The AI is auditing the photos now. This page updates by itself.
+          </p>
+        </section>
+      ) : null}
+
       {deal.verificationCode && showsVerificationCode(deal.state, sentPhotos > 0) ? (
         <VerificationCodeCard
           code={deal.verificationCode}
@@ -212,22 +228,6 @@ async function TrustLinkContent({
           </p>
         )}
       </section>
-
-      {deal.audit ? (
-        <AuditReport audit={deal.audit} />
-      ) : deal.state === "AUDITING" ? (
-        <section aria-labelledby="audit-empty-heading" className="space-y-2" aria-live="polite">
-          <h2
-            id="audit-empty-heading"
-            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-          >
-            Audit report
-          </h2>
-          <p className="text-[0.9375rem] leading-[1.55] text-ink-muted">
-            The AI is auditing the photos now. This page updates by itself.
-          </p>
-        </section>
-      ) : null}
 
       <footer className="border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">
         Sandbox demo. No real money moves.
