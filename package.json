@@ -9,7 +9,7 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "eval": "tsx evals/run.ts"
+    "eval": "tsx --conditions=react-server --env-file=.env.local evals/run.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.82",

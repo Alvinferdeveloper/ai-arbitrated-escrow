@@ -162,6 +162,26 @@ audit compares the guide weight with the model's estimate for the product with
 its box (about 0.7 kg for these headphones) at a 25% tolerance, so the honest
 guide must show a realistic weight.
 
+## Eval
+
+`pnpm eval` runs 12 cases (`evals/cases.ts`) through the production audit,
+arbitration and rules with the real model. It stops before the state machine, so
+it creates no deals and calls no PayPal API. It needs the `AI_*` variables and
+the sample photos; a case whose photos are missing is reported as skipped.
+
+```bash
+pnpm eval                             # every case, once
+pnpm eval --repeat 3                  # the model is not deterministic
+pnpm eval --only wrong-weight         # one case
+pnpm eval --photos path/to/photos     # another photo folder
+```
+
+It reports fraud let through, honest deals stopped, wrong steps, technical
+failures and cases sent to a person, and writes `evals/results/latest.json`.
+Keep sample photos at most 1536 px on the long side, as uploads are. Photo A of
+the honest set must not show a legible serial number, or `high-value-without-serial`
+has nothing to catch.
+
 ## Disputes
 
 On a `SHIPPED` deal the buyer can open **Something is wrong with the parcel**

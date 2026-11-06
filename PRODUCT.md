@@ -135,7 +135,7 @@ Thresholds live in `lib/agents/rules.config.ts` and are tuned with the eval set.
 | FR10 | Otherwise the deal appears in the mediator queue | Should |
 | FR11 | Mediator releases, refunds or requests more evidence | Should |
 | FR12 | All parties see the deal state in real time (Supabase Realtime) | Nice |
-| — | 24-case eval with visible metrics in the pitch | Nice |
+| — | 12-case eval with visible metrics in the pitch | Nice |
 
 **Cut:** carrier tracking APIs, multiple countries or currencies, real authentication,
 importing listings by Facebook Marketplace link.
@@ -169,7 +169,8 @@ shipping; lying buyer → dispute resolved or escalated to the mediator.
 ## Success metrics for the hackathon
 
 - Stage One pass: fits theme and uses PayPal APIs (Orders, Payouts, Refunds, Webhooks, Tracking).
-- Eval run: accuracy and escalation rate over 24 cases, quoted honestly in the pitch.
+- Eval run: fraud let through, honest deals stopped and escalation rate over 12 cases, quoted
+  honestly in the pitch.
 - A judge can complete all three scenarios from the hosted URL without asking us anything.
 
 ## Deadline
