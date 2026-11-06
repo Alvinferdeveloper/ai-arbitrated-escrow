@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { ArrowUpRight } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
-import { HoldingSlip } from "@/components/holding-slip";
+import { HeldBetween } from "@/components/held-between";
 import { StateStamp } from "@/components/state-stamp";
 import { ButtonLink } from "@/components/ui/button";
 import { DEMO_DEALS } from "@/demo/data";
@@ -13,202 +13,97 @@ import { formatMoney } from "@/lib/deals/money";
 import type { DealState } from "@/lib/state-machine/states";
 
 const SCENARIO_COPY = [
-  "The evidence passes, tracking is attached, and the money releases after receipt or the deadline.",
-  "The guide says 0.4 kg. That is too light for the product, so the AI asks for a new guide photo.",
-  "The buyer disputes the delivery. The AI compares both sides' photos, they contradict each other, so a mediator decides.",
-];
-
-const FEARS = [
-  {
-    who: "The buyer",
-    fear: "pays first and gets an empty box, a brick, or nothing at all.",
-  },
-  {
-    who: "The seller",
-    fear: "ships first and faces a buyer who swears the parcel arrived empty.",
-  },
-];
-
-const TRY_IT = [
-  {
-    title: "Create a deal as the seller",
-    body: "Open Create a deal, press Use the sample listing, then create it.",
-  },
-  {
-    title: "Pay as the buyer",
-    body: "Open the Trust Link and pay with PayPal, using the sandbox buyer shown on the page.",
-  },
-  {
-    title: "Send the evidence",
-    body: "Switch to the seller view, load a sample evidence set and send it for audit.",
-  },
-  {
-    title: "Watch the AI decide",
-    body: "In about 20 seconds it ships the deal, asks for a specific retake, or refunds the buyer. Try each sample set.",
-  },
-  {
-    title: "Optional: dispute as the buyer",
-    body: "On a shipped deal, report a problem with a sample unboxing photo and see the AI arbitrate.",
-  },
+  "The photos match the listing, so the AI clears the deal to ship. The seller is paid once the buyer confirms receipt or the deadline passes.",
+  "The shipping label says 0.4 kg, too light for this product. The AI asks the seller for a new photo.",
+  "The buyer reports a problem. The AI compares both sides' photos, they contradict each other, so a person decides.",
 ];
 
 const STEPS = [
   {
     title: "The seller creates a deal",
-    body: "A title, a price and a description. Then a Trust Link to share with the buyer.",
+    body: "A title and a price, typed or read from a screenshot of the listing. The seller gets a Trust Link: the page the buyer opens to pay.",
+    tryIt: "Press Try a sample deal, then create it.",
   },
   {
-    title: "The buyer pays",
-    body: "Checkout captures the payment into the platform account. We hold it until the deal ends.",
+    title: "The buyer pays with PayPal",
+    body: "The money waits with us. The seller cannot touch it yet.",
+    tryIt: "Open the Trust Link and pay with the sandbox buyer shown there.",
   },
   {
     title: "The seller proves the parcel",
-    body: "Photos A, B and C plus the shipping guide. A vision model reads them and explicit rules decide whether shipping can start.",
+    body: "Three photos: the item, the item in its box, and the sealed parcel with its shipping label. In about 20 seconds the AI clears the deal to ship, asks for a new photo, or refunds the buyer.",
+    tryIt: "Switch to the seller view and send the photos, or a sample set if one is listed.",
   },
   {
     title: "The money moves last",
-    body: "On receipt or after the deadline, the seller is paid. In a dispute the AI compares both sides; only evidence that contradicts itself goes to a person.",
+    body: "The seller is paid on receipt or after the deadline. If the buyer reports a problem, the AI compares both sides, and only a real contradiction goes to a person.",
+    tryIt: "On a shipped deal, report a problem as the buyer.",
   },
 ];
 
 export default function Home() {
-  const firstDeal = DEMO_DEALS[0];
-
   return (
     <div className="min-h-[100dvh] bg-paper">
-      <AppBar right="Sandbox" />
+      <AppBar />
       <main className="mx-auto w-full max-w-[640px] px-4 pb-20 pt-10 md:px-6 md:pt-14">
         <p className="text-[0.8125rem] font-medium text-ink-muted">
-          Escrow for sales between strangers online
+          Sandbox demo. No real money moves.
         </p>
         <h1 className="mt-3 max-w-[18ch] text-[2.5rem] font-semibold leading-[1.05] tracking-[-0.03em] text-ink">
-          Money held until the parcel is checked.
+          Two strangers. One sale. Neither trusts the other.
         </h1>
         <p className="mt-4 max-w-[65ch] text-[1.0625rem] leading-[1.55] text-ink">
-          We hold the buyer&apos;s payment, audit the seller&apos;s photos and shipping guide, and
-          release the money when the parcel arrives. The AI ships, asks for new photos or refunds on
-          its own; a person only sees evidence that contradicts itself.
+          The buyer fears paying for an empty box. The seller fears shipping and being told
+          the box arrived empty. {APP_NAME} sits between them: the buyer pays with PayPal, we
+          hold the money, and nothing ships until an AI clears the parcel photos.
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <ButtonLink href="/seller">Create a deal</ButtonLink>
-          <ButtonLink href="/deals" variant="secondary">
-            See all deals
-          </ButtonLink>
-          <ButtonLink href="#how-it-works" variant="ghost">
-            Read how it works
+          {DEMO_MODE ? (
+            <ButtonLink href="/seller?sample=1">Try a sample deal</ButtonLink>
+          ) : (
+            <ButtonLink href="/seller">Create a deal</ButtonLink>
+          )}
+          <ButtonLink href="#examples" variant="ghost">
+            See what the AI decides
           </ButtonLink>
         </div>
 
-        <section aria-labelledby="problem-heading" className="mt-14">
-          <h2
-            id="problem-heading"
-            className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-          >
-            The problem
-          </h2>
-          <p className="mt-2 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
-            Buying from a stranger online still has no safety net. Stores have return
-            policies and buyer protection; a sale between two people over chat has none
-            of that.
-          </p>
-          <dl className="mt-4 grid border-y border-rule-line sm:grid-cols-2 sm:divide-x sm:divide-rule-line">
-            {FEARS.map((item, index) => (
-              <div
-                key={item.who}
-                className={`py-4 sm:px-4 sm:first:pl-0 sm:last:pr-0 ${
-                  index > 0 ? "border-t border-rule-line sm:border-t-0" : ""
-                }`}
-              >
-                <dt className="text-[0.9375rem] font-medium text-ink">{item.who}</dt>
-                <dd className="mt-1 text-[0.9375rem] leading-[1.55] text-ink-muted">
-                  {item.fear}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-4 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
-            Nobody checks who is telling the truth, because reviewing a dispute by hand
-            costs more than the sale. So the honest side loses, or people simply
-            don&apos;t buy.
-          </p>
-          <p className="mt-3 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
-            <span className="font-medium">{APP_NAME} is the missing safety net:</span> it
-            holds the money, checks the parcel photos before shipping, compares them again
-            if the buyer disputes, and hands a person only the cases where the two sides
-            contradict each other.
-          </p>
-        </section>
-
-        {DEMO_MODE ? (
-          <section aria-labelledby="try-heading" className="mt-14">
-            <h2
-              id="try-heading"
-              className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
-            >
-              Try it in three minutes
-            </h2>
-            <p className="mt-2 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
-              No sign-up and no photos to take. You play every role, and the AI checks
-              every photo for real.
-            </p>
-            <ol className="mt-4 space-y-4 border-l border-rule-line pl-4">
-              {TRY_IT.map((step, index) => (
-                <li key={step.title}>
-                  <p className="text-[0.9375rem] font-medium text-ink">
-                    <span className="mr-2 font-mono tabular-nums text-ink-muted">{index + 1}.</span>
-                    {step.title}
-                  </p>
-                  <p className="mt-1 max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted">
-                    {step.body}
-                  </p>
-                </li>
-              ))}
-            </ol>
-            <div className="mt-5">
-              <ButtonLink href="/seller">Start with a sample deal</ButtonLink>
-            </div>
-          </section>
-        ) : null}
-
-        <div className="mt-14 space-y-3">
-          <p className="text-[0.8125rem] font-medium text-ink-muted">
-            What the buyer sees
-          </p>
-          <HoldingSlip
-            amountCents={firstDeal.priceCents}
-            state={firstDeal.state}
-            deadline="Auto-release in 1d 22h"
-          />
+        <div className="mt-10">
+          <HeldBetween amountCents={DEMO_DEALS[0].priceCents} />
         </div>
 
-        <section id="demo" aria-labelledby="demo-heading" className="mt-14">
+        <section id="examples" aria-labelledby="examples-heading" className="mt-14 scroll-mt-20">
           <div className="flex items-baseline justify-between gap-4">
             <h2
-              id="demo-heading"
+              id="examples-heading"
               className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
             >
-              Example deals
+              What the AI decides
             </h2>
-            <span className="text-[0.8125rem] text-ink-muted">Each frozen at one step</span>
+            <span className="text-[0.8125rem] text-ink-muted">Example deals</span>
           </div>
+          <p className="mt-2 max-w-[65ch] text-[1rem] leading-[1.55] text-ink">
+            Reviewing a dispute by hand costs more than the sale, so today nobody does. Here
+            the AI reads the evidence and explicit rules decide.
+          </p>
           <Suspense fallback={<DemoDealList />}>
             <LiveDemoDealList />
           </Suspense>
-          <div className="mt-4 flex justify-end">
-            <ButtonLink href="/mediator" variant="ghost" size="sm">
-              Open the mediator queue
-            </ButtonLink>
-          </div>
         </section>
 
-        <section id="how-it-works" aria-labelledby="how-heading" className="mt-14">
+        <section aria-labelledby="how-heading" className="mt-14">
           <h2
             id="how-heading"
             className="text-[1.125rem] font-semibold leading-[1.35] text-ink"
           >
             How it works
           </h2>
+          {DEMO_MODE ? (
+            <p className="mt-2 max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
+              No sign-up. You play every role, and the AI checks every photo for real.
+            </p>
+          ) : null}
           <ol className="mt-4 space-y-5">
             {STEPS.map((step, index) => (
               <li key={step.title} className="grid grid-cols-[2rem_1fr] gap-3">
@@ -223,10 +118,20 @@ export default function Home() {
                   <p className="mt-1 max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink-muted">
                     {step.body}
                   </p>
+                  {DEMO_MODE ? (
+                    <p className="mt-1 max-w-[65ch] text-[0.875rem] leading-[1.55] text-ink">
+                      <span className="font-medium">Try it:</span> {step.tryIt}
+                    </p>
+                  ) : null}
                 </div>
               </li>
             ))}
           </ol>
+          {DEMO_MODE ? (
+            <div className="mt-6">
+              <ButtonLink href="/seller?sample=1">Try a sample deal</ButtonLink>
+            </div>
+          ) : null}
         </section>
 
         <footer className="mt-14 border-t border-rule-line pt-5 text-[0.8125rem] leading-[1.5] text-ink-muted">

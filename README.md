@@ -126,8 +126,9 @@ seconds as a fallback. Needs `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 
 ### Judge path
 
-In demo mode the landing shows **Try it in three minutes**, and the Trust Link
-shows the sandbox buyer to pay with. Set `DEMO_PAYPAL_BUYER_EMAIL` and
+In demo mode **How it works** on the landing doubles as the judge guide, **Try a
+sample deal** opens the create form with the sample listing filled in
+(`/seller?sample=1`), and the Trust Link shows the sandbox buyer to pay with. Set `DEMO_PAYPAL_BUYER_EMAIL` and
 `DEMO_PAYPAL_BUYER_PASSWORD` to a sandbox personal account (never a real one).
 
 AI calls are capped per deal (`AI_AUDITS_PER_DEAL`, default 8) and across the
