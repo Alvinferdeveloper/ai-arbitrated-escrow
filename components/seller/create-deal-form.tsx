@@ -3,7 +3,7 @@
 import { AlertCircle } from "lucide-react";
 import { useActionState, useRef, useState } from "react";
 import { createDealAction, type CreateDealFormState } from "@/app/(dashboard)/seller/actions";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import type { PartyOption } from "@/lib/db/deal-store";
 import { SAMPLE_LISTING } from "@/demo/sample-evidence";
 import type { ListingDraft } from "@/lib/agents/listing";
@@ -41,9 +41,11 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 export function CreateDealForm({
   sellers,
   buyers,
+  startWithSample = false,
 }: {
   sellers: PartyOption[];
   buyers: PartyOption[];
+  startWithSample?: boolean;
 }) {
   const [state, formAction, pending] = useActionState(
     createDealAction,
@@ -54,7 +56,8 @@ export function CreateDealForm({
     state.status === "INVALID_INPUT" || state.status === "PARTY_NOT_FOUND";
 
   const formRef = useRef<HTMLFormElement>(null);
-  const [sample, setSample] = useState(false);
+  const [sample, setSample] = useState(startWithSample);
+  const prefill = startWithSample ? SAMPLE_LISTING : null;
 
   function fillFields(values: Record<string, string | null>) {
     const fields = formRef.current?.elements;
@@ -74,10 +77,19 @@ export function CreateDealForm({
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
-      <ScreenshotImport onDraft={fillFromDraft} />
+      {startWithSample ? null : <ScreenshotImport onDraft={fillFromDraft} />}
       <input type="hidden" name="sample" value={sample ? "1" : ""} />
 
-      {DEMO_MODE ? (
+      {startWithSample ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-rule-line p-4">
+          <p className="text-[0.875rem] text-ink">
+            Sample listing loaded. Press Create the deal below.
+          </p>
+          <ButtonLink href="/seller" variant="ghost" size="sm">
+            Start from scratch
+          </ButtonLink>
+        </div>
+      ) : DEMO_MODE ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-rule-line p-4">
           <p className="text-[0.875rem] text-ink">Trying the demo? Start from the sample listing.</p>
           {/* Matches the sample evidence photos, so the demo audit compares like with like. */}
@@ -168,6 +180,7 @@ export function CreateDealForm({
           type="text"
           required
           maxLength={140}
+          defaultValue={prefill?.title}
           placeholder="e.g. Wireless over-ear headphones"
           aria-invalid={Boolean(state.fieldErrors.title)}
           aria-describedby="title-error title-hint"
@@ -188,6 +201,7 @@ export function CreateDealForm({
           name="description"
           maxLength={2000}
           rows={4}
+          defaultValue={prefill?.description}
           placeholder="Condition, what is included, anything the buyer should know."
           aria-invalid={Boolean(state.fieldErrors.description)}
           aria-describedby="description-error description-hint"
@@ -214,6 +228,7 @@ export function CreateDealForm({
               type="text"
               inputMode="decimal"
               required
+              defaultValue={prefill?.priceUsd}
               placeholder="37.50"
               className={`${INPUT} font-mono pr-14 tabular-nums`}
               aria-invalid={Boolean(state.fieldErrors.priceUsd)}

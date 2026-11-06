@@ -3,10 +3,11 @@ import Link from "next/link";
 import { ArrowLeft, AlertCircle } from "lucide-react";
 import { AppBar } from "@/components/app-bar";
 import { CreateDealForm } from "@/components/seller/create-deal-form";
+import { DEMO_MODE } from "@/lib/config";
 import { listPartyOptions } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 
-export default function SellerPage() {
+export default function SellerPage({ searchParams }: PageProps<"/seller">) {
   return (
     <div className="min-h-[100dvh] bg-paper">
       <AppBar right="Seller demo" />
@@ -31,7 +32,7 @@ export default function SellerPage() {
 
         <div className="mt-8">
           <Suspense fallback={<CreateDealSkeleton />}>
-            <CreateDealSection />
+            <CreateDealSection searchParams={searchParams} />
           </Suspense>
         </div>
 
@@ -43,7 +44,10 @@ export default function SellerPage() {
   );
 }
 
-async function CreateDealSection() {
+async function CreateDealSection({ searchParams }: Pick<PageProps<"/seller">, "searchParams">) {
+  const { sample } = await searchParams;
+  const startWithSample = DEMO_MODE && sample === "1";
+
   if (!isSupabaseConfigured()) {
     return (
       <section
@@ -92,7 +96,14 @@ async function CreateDealSection() {
     );
   }
 
-  return <CreateDealForm sellers={options.sellers} buyers={options.buyers} />;
+  return (
+    <CreateDealForm
+      key={startWithSample ? "sample" : "blank"}
+      sellers={options.sellers}
+      buyers={options.buyers}
+      startWithSample={startWithSample}
+    />
+  );
 }
 
 function CreateDealSkeleton() {
