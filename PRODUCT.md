@@ -51,7 +51,8 @@ reading level, since many users are non-native English speakers.
 ## One-line pitch
 
 A 40 USD peer-to-peer scam that nobody can arbitrate today, resolved in 30 seconds:
-escrow on PayPal plus an AI evidence audit, with a human mediator for every doubtful case.
+escrow on PayPal plus an AI evidence audit; the AI ships, asks for retakes or refunds, and a
+person only takes evidence that contradicts itself.
 
 ## Problem
 
