@@ -1,4 +1,4 @@
-# Project Shield
+# Evenhand
 
 Escrow and AI evidence arbitration for peer-to-peer sales on PayPal.
 Built for the PayPal AI Hackathon. Sandbox only: no real money moves.

@@ -1,5 +1,5 @@
 ---
-name: Project Shield
+name: Evenhand
 description: Escrow and AI evidence arbitration for peer-to-peer sales on PayPal.
 colors:
   postal-ink: "oklch(0.45 0.19 265)"
@@ -107,7 +107,7 @@ components:
     padding: "16px"
 ---
 
-# Design System: Project Shield
+# Design System: Evenhand
 
 > Visual source of truth. Product rules live in `PRODUCT.md`; architecture and code rules live in the
 > local agent manual (`../AGENTS.md`, not versioned). The frontmatter tokens are normative and are mirrored 1:1 as CSS variables in
@@ -245,6 +245,13 @@ look). Primitives live in `components/ui/*`; product components in `components/*
 
 Every interactive component defines default, hover, focus-visible, active, disabled, loading and
 error. Touch targets are at least 44 px; primary buttons are 48 px tall.
+
+### Logo
+
+An E with its middle arm cut loose: buyer and seller at the top and bottom, the held money
+between them. Use `LogoMark` in `components/logo.tsx`, in `postal-ink` or `ink` on light surfaces
+and `sheet` on `postal-ink`. Keep the sharp corners and the gaps; they are what stays legible at
+16 px. Files for use outside the app are in `public/brand/`.
 
 ### Buttons
 - **Shape:** gently rounded (10 px).

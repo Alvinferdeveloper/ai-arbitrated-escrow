@@ -6,6 +6,7 @@ import type {
   RefundResult,
   SettlementGateway,
 } from "@/lib/state-machine/settlement";
+import { APP_NAME } from "@/lib/config";
 import { paypalRequest } from "./client";
 import { requirePayPalConfig } from "./config";
 
@@ -41,7 +42,7 @@ export function createPayPalSettlementGateway(): SettlementGateway {
         body: {
           sender_batch_header: {
             sender_batch_id: request.idempotencyKey,
-            email_subject: "Your Project Shield payout",
+            email_subject: `Your ${APP_NAME} payout`,
             email_message: "The held funds were released after the deal settled.",
           },
           items: [
@@ -80,7 +81,7 @@ export function createPayPalSettlementGateway(): SettlementGateway {
             currency_code: request.currency,
           },
           invoice_id: `shield-${request.dealId}`,
-          note_to_payer: "Refund from Project Shield.",
+          note_to_payer: `Refund from ${APP_NAME}.`,
         },
         config,
       });

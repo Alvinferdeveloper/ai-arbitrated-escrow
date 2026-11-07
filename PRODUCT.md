@@ -1,11 +1,11 @@
-# PRODUCT.md — Project Shield (working title)
+# PRODUCT.md — Evenhand
 
 > Product source of truth inside the repo. Contributors working locally may also have the full
 > technical spec and an agent manual one folder up (`../`); those are private notes and are not
 > versioned. If this file and the spec disagree, the spec wins; fix this file.
 
-The product name is not final. It lives in one constant, `APP_NAME` in `lib/config.ts`.
-Never hard-code the name anywhere else. Shortlist: TrustParcel, SafeHandoff, ParcelGuard.
+The product name lives in one constant, `APP_NAME` in `lib/config.ts`. Never hard-code it
+anywhere else.
 
 ## Register
 

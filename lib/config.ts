@@ -1,6 +1,6 @@
 // Product-wide constants. Change the product name here and nowhere else.
 
-export const APP_NAME = "Project Shield";
+export const APP_NAME = "Evenhand";
 
 export const CURRENCY = "USD" as const;
 /** Smallest deal PayPal and the payout fees make sensible. */

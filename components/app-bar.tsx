@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { LogoMark } from "@/components/logo";
 import { APP_NAME } from "@/lib/config";
 
 const LINK =
@@ -11,8 +12,9 @@ export function AppBar({ right }: { right?: ReactNode }) {
       <div className="mx-auto flex h-14 w-full max-w-[640px] items-center justify-between gap-4 px-4 md:px-6">
         <Link
           href="/"
-          className={`${LINK} text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink`}
+          className={`${LINK} inline-flex items-center gap-2 text-[0.9375rem] font-semibold tracking-[-0.01em] text-ink`}
         >
+          <LogoMark className="size-5 text-postal-ink" />
           {APP_NAME}
         </Link>
         <div className="flex min-w-0 items-center gap-4">
