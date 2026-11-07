@@ -32,7 +32,7 @@ const queueTheme = themeQuartz.withParams({
   headerFontWeight: 500,
   fontFamily: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
   dataFontSize: "0.875rem",
-  cellHorizontalPadding: 16,
+  cellHorizontalPadding: 14,
   rowHeight: 64,
   headerHeight: 44,
   borderRadius: 10,
@@ -46,11 +46,11 @@ function CaseCell({ data }: ICellRendererParams<MediationQueueRow>) {
   if (!data) return null;
 
   return (
-    <div className="py-1">
-      <p className="text-[0.9375rem] font-medium leading-[1.35] text-ink">
+    <div className="flex h-full flex-col justify-center">
+      <p title={data.title} className="truncate text-[0.9375rem] font-medium leading-[1.35] text-ink">
         {data.title}
       </p>
-      <p className="mt-0.5 text-[0.8125rem] text-ink-muted">
+      <p className="mt-0.5 truncate text-[0.8125rem] leading-[1.35] text-ink-muted">
         Buyer: {data.buyerName}
       </p>
     </div>
@@ -61,10 +61,12 @@ function ReasonCell({ data }: ICellRendererParams<MediationQueueRow>) {
   if (!data) return null;
 
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-sm border border-flagged bg-flagged-wash px-2 py-1 text-[0.8125rem] font-medium leading-none text-flagged">
-      <Flag aria-hidden="true" size={16} strokeWidth={1.75} />
-      {data.reasonLabel}
-    </span>
+    <div className="flex h-full items-center">
+      <span className="inline-flex items-center gap-1.5 whitespace-normal rounded-sm border border-flagged bg-flagged-wash px-2 py-1 text-[0.8125rem] font-medium leading-[1.25] text-flagged">
+        <Flag aria-hidden="true" size={16} strokeWidth={1.75} className="shrink-0" />
+        {data.reasonLabel}
+      </span>
+    </div>
   );
 }
 
@@ -104,13 +106,13 @@ export function MediationGrid({ rows }: { rows: MediationQueueRow[] }) {
       {
         headerName: "Escalation reason",
         field: "reasonLabel",
-        width: 200,
+        width: 196,
         cellRenderer: ReasonCell,
       },
       {
-        headerName: "Case age",
+        headerName: "Age",
         field: "openedAt",
-        width: 96,
+        width: 108,
         valueFormatter: ({ data }) => data?.age ?? "",
         comparator: compareCaseAge,
         cellClass: "font-mono tabular-nums text-ink-muted",
@@ -118,7 +120,7 @@ export function MediationGrid({ rows }: { rows: MediationQueueRow[] }) {
       {
         headerName: "State",
         field: "state",
-        width: 168,
+        width: 164,
         cellRenderer: StateCell,
       },
     ],
