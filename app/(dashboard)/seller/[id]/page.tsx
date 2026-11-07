@@ -129,7 +129,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         />
       ) : null}
 
-      {canUpload ? <EvidenceUploadForm dealId={deal.id} /> : null}
+      {canUpload ? <EvidenceUploadForm dealId={deal.id} isSample={deal.isSample} /> : null}
 
       {deal.state === "AUDITING" ? <AuditRunning /> : null}
 

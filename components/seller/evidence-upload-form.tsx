@@ -11,7 +11,7 @@ import { EVIDENCE_UPLOAD_SLOTS } from "@/lib/deals/evidence-upload";
 import { SampleEvidencePicker } from "@/components/evidence/sample-evidence-picker";
 import { SAMPLE_SCENARIOS } from "@/demo/sample-evidence";
 
-export function EvidenceUploadForm({ dealId }: { dealId: string }) {
+export function EvidenceUploadForm({ dealId, isSample }: { dealId: string; isSample: boolean }) {
   const router = useRouter();
   const photos = usePhotoSlots(EVIDENCE_UPLOAD_SLOTS);
   const [progress, setProgress] = useState<number | null>(null);
@@ -52,6 +52,7 @@ export function EvidenceUploadForm({ dealId }: { dealId: string }) {
       </div>
 
       <SampleEvidencePicker
+        isSampleDeal={isSample}
         scenarios={SAMPLE_SCENARIOS}
         slots={EVIDENCE_UPLOAD_SLOTS}
         disabled={uploading}

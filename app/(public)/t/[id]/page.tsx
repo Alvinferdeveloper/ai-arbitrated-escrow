@@ -394,7 +394,7 @@ function BuyerAction({
               Something is wrong with the parcel
             </summary>
             <div className="border-t border-rule-line p-4">
-              <DisputeForm dealId={deal.id} askReason />
+              <DisputeForm dealId={deal.id} isSample={deal.isSample} askReason />
             </div>
           </details>
         ) : null}
@@ -414,7 +414,7 @@ function BuyerAction({
         <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink-muted">
           Show the opened parcel and what came out of it. The money stays held.
         </p>
-        {releaseEnabled ? <DisputeForm dealId={deal.id} askReason={false} /> : null}
+        {releaseEnabled ? <DisputeForm dealId={deal.id} isSample={deal.isSample} askReason={false} /> : null}
       </section>
     );
   }

@@ -139,9 +139,10 @@ nothing is stored.
 ### Sample evidence
 
 With `NEXT_PUBLIC_DEMO_MODE=true` the create-deal form offers **Use the sample
-listing** and the upload form offers **Load sample evidence**. The samples are
-real photos that go through the same upload and audit; nothing is faked. Each
-scenario only shows up once its photos exist:
+listing**, and on a deal started from it the upload and dispute forms offer **Load
+sample evidence**. A deal with its own listing does not: the photos would not
+match it. The samples are real photos that go through the same upload and audit;
+nothing is faked. Each scenario only shows up once its photos exist:
 
 ```
 public/demo-evidence/honest/{A,B,C}.jpg             product, product in box, sealed parcel with a legible guide (about 0.7 to 0.9 kg)

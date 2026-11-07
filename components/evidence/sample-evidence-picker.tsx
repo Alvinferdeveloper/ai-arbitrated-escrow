@@ -22,14 +22,19 @@ async function fetchPhoto(scenarioId: string, slot: EvidenceSlot): Promise<File>
   return new File([blob], `${slot}.jpg`, { type: blob.type || "image/jpeg" });
 }
 
-/** Demo-only shortcut; a scenario shows up once its photos exist. */
+/**
+ * Demo-only shortcut; a scenario shows up once its photos exist. Only sample deals
+ * get it: the photos match the sample listing and carry that deal's code.
+ */
 export function SampleEvidencePicker<Slot extends EvidenceSlot>({
+  isSampleDeal,
   scenarios,
   slots,
   disabled,
   onLoad,
   onSelect,
 }: {
+  isSampleDeal: boolean;
   scenarios: readonly SampleScenario[];
   slots: readonly Slot[];
   disabled: boolean;
@@ -41,7 +46,7 @@ export function SampleEvidencePicker<Slot extends EvidenceSlot>({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!DEMO_MODE) return;
+    if (!DEMO_MODE || !isSampleDeal) return;
     let cancelled = false;
 
     Promise.all(
@@ -53,7 +58,7 @@ export function SampleEvidencePicker<Slot extends EvidenceSlot>({
     return () => {
       cancelled = true;
     };
-  }, [scenarios, slots]);
+  }, [isSampleDeal, scenarios, slots]);
 
   if (installed.length === 0) return null;
 

@@ -16,7 +16,15 @@ const SLOTS = ["D"] as const;
  * `askReason` is false when the dispute is already open and only a new
  * unboxing photo is needed.
  */
-export function DisputeForm({ dealId, askReason }: { dealId: string; askReason: boolean }) {
+export function DisputeForm({
+  dealId,
+  isSample,
+  askReason,
+}: {
+  dealId: string;
+  isSample: boolean;
+  askReason: boolean;
+}) {
   const router = useRouter();
   const photos = usePhotoSlots(SLOTS);
   const [reason, setReason] = useState("");
@@ -70,6 +78,7 @@ export function DisputeForm({ dealId, askReason }: { dealId: string; askReason: 
       ) : null}
 
       <SampleEvidencePicker
+        isSampleDeal={isSample}
         scenarios={UNBOXING_SCENARIOS}
         slots={SLOTS}
         disabled={uploading}
