@@ -215,6 +215,7 @@ export function getDemoMediationQueue(now: Date = new Date()): MediationQueueRow
     reason: caseFile.reason,
     reasonLabel: ESCALATION_RULE_LABELS[caseFile.reason],
     age: formatCaseAge(caseFile.openedAt, now),
+    openedAt: caseFile.openedAt.toISOString(),
     state: "ESCALATED",
   }));
 }

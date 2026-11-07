@@ -17,6 +17,11 @@ export function formatCaseAge(openedAt: Date, now: Date = new Date()): string {
   return `${days}d ${hours % 24}h`;
 }
 
+/** Ascending means youngest first, like any age. */
+export function compareCaseAge(openedAtA: string, openedAtB: string): number {
+  return Date.parse(openedAtB) - Date.parse(openedAtA);
+}
+
 /** Timestamp for the case timeline, always in UTC so the demo is stable. */
 export function formatCaseTimestamp(at: Date): string {
   const formatted = new Intl.DateTimeFormat("en", {

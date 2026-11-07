@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { formatCaseAge } from "./age";
+import { compareCaseAge, formatCaseAge } from "./age";
 
 const now = new Date("2026-10-29T12:00:00.000Z");
+
+describe("compareCaseAge()", () => {
+  it("sorts by elapsed time, not by the displayed text", () => {
+    const opened = (minutesAgo: number) =>
+      new Date(now.getTime() - minutesAgo * 60_000).toISOString();
+    const cases = [opened(10), opened(2), opened(180), opened(1500)];
+
+    expect([...cases].sort(compareCaseAge)).toEqual([
+      opened(2),
+      opened(10),
+      opened(180),
+      opened(1500),
+    ]);
+  });
+});
 
 describe("formatCaseAge()", () => {
   it("shows just now for a fresh case", () => {

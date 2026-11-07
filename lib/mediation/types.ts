@@ -59,6 +59,8 @@ export type MediationQueueRow = {
   reason: EscalationRuleId;
   reasonLabel: string;
   age: string;
+  /** ISO time the case age counts from; `age` is display text and doesn't sort. */
+  openedAt: string;
   state: "ESCALATED";
 };
 

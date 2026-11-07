@@ -227,6 +227,7 @@ export async function listMediationQueue(
       reason,
       reasonLabel: ESCALATION_RULE_LABELS[reason],
       age: formatCaseAge(new Date(deal.updated_at), now),
+      openedAt: deal.updated_at,
       state: "ESCALATED",
     };
   });

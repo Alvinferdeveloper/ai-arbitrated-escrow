@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { StateStamp } from "@/components/state-stamp";
 import { formatMoney } from "@/lib/deals/money";
+import { compareCaseAge } from "@/lib/mediation/age";
 import type { MediationQueueRow } from "@/lib/mediation/types";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -108,8 +109,10 @@ export function MediationGrid({ rows }: { rows: MediationQueueRow[] }) {
       },
       {
         headerName: "Case age",
-        field: "age",
+        field: "openedAt",
         width: 96,
+        valueFormatter: ({ data }) => data?.age ?? "",
+        comparator: compareCaseAge,
         cellClass: "font-mono tabular-nums text-ink-muted",
       },
       {
