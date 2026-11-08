@@ -5,10 +5,9 @@ import type { EvidenceSlot } from "@/lib/deals/types";
 // Photos A and C show DEMO_SAMPLE_VERIFICATION_CODE handwritten on paper.
 
 export const SAMPLE_LISTING = {
-  title: "Wireless over-ear headphones, black",
-  description:
-    "Used for six months, no scratches. Includes the case and the charging cable.",
-  priceUsd: "85.00",
+  title: "Computer mouse, black",
+  description: "Used for six months, in good working condition, no cracks. Ships in a small box, about 0.35 kg packed.",
+  priceUsd: "25.00",
 } as const;
 
 export type SampleScenario = {
@@ -28,7 +27,7 @@ export const SAMPLE_SCENARIOS: readonly SampleScenario[] = [
   {
     id: "wrong-weight",
     label: "Wrong weight",
-    expected: "The guide weight is too low for the product, so the AI asks for a new guide photo.",
+    expected: "The guide weight is far too high for the product, so the AI asks for a new guide photo.",
   },
   {
     id: "different-product",

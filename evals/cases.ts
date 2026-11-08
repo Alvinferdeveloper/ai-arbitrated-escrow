@@ -40,7 +40,7 @@ function photoSet(id: string): SellerPhotos {
 const LISTING: EvidenceAuditInput = {
   title: SAMPLE_LISTING.title,
   description: SAMPLE_LISTING.description,
-  priceCents: 8500,
+  priceCents: 2500,
 };
 
 const CODE = DEMO_SAMPLE_VERIFICATION_CODE;
@@ -59,7 +59,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
   {
     id: "wrong-weight",
     kind: "audit",
-    title: "Guide weight far too low for the product",
+    title: "Guide weight far too high for the product",
     listing: LISTING,
     photos: photoSet("wrong-weight"),
     verificationCode: CODE,
@@ -91,7 +91,7 @@ export const EVAL_CASES: readonly EvalCase[] = [
     id: "listing-is-another-color",
     kind: "audit",
     title: "Same product in another color than listed",
-    listing: { ...LISTING, title: "Wireless over-ear headphones, white" },
+    listing: { ...LISTING, title: "Computer mouse, white" },
     photos: HONEST,
     verificationCode: CODE,
     expected: { outcome: "RETAKE", rules: ["PRODUCT_MISMATCH"], retakeSlots: ["A"] },

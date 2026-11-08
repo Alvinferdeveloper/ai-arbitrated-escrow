@@ -71,7 +71,7 @@ export function DisputeForm({
             maxLength={2000}
             rows={3}
             disabled={uploading}
-            placeholder="The box arrived empty. The headphones were not inside."
+            placeholder="The box arrived empty. The item was not inside."
             className="min-h-24 w-full rounded-md border border-rule-line bg-sheet px-3.5 py-3 text-[1rem] leading-[1.55] text-ink placeholder:text-ink-muted focus:border-postal-ink focus:outline-none focus:ring-2 focus:ring-postal-ink focus:ring-offset-2 focus:ring-offset-paper"
           />
         </div>
