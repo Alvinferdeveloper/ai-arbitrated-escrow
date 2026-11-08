@@ -5,7 +5,7 @@ import type { EvidenceSlot } from "@/lib/deals/types";
 // Photos A and C show DEMO_SAMPLE_VERIFICATION_CODE handwritten on paper.
 
 export const SAMPLE_LISTING = {
-  title: "Computer mouse, black",
+  title: "Computer mouse, black and blue",
   description: "Used for six months, in good working condition, no cracks. Ships in a small box, about 0.35 kg packed.",
   priceUsd: "25.00",
 } as const;
