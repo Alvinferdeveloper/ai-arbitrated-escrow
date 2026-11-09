@@ -26,7 +26,7 @@ import {
 } from "@/lib/deals/story";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
-import { isWaitingOnSystem } from "@/lib/state-machine/presentation";
+import { isConfirmingPayment, isWaitingOnSystem } from "@/lib/state-machine/presentation";
 import { getCapturePayment } from "@/lib/db/checkout-store";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { getDealSettlement } from "@/lib/db/dispute-store";
@@ -104,13 +104,13 @@ async function TrustLinkContent({
 
   const paymentResult =
     typeof query.payment === "string" ? query.payment : undefined;
-  const paymentInProgress =
-    captureStatus === "APPROVED" ||
-    captureStatus === "PENDING" ||
-    captureStatus === "COMPLETED";
-  const notice =
-    paymentResult ??
-    (paymentInProgress ? "processing" : undefined);
+  const paymentInProgress = isConfirmingPayment(deal.state, captureStatus);
+  // The URL keeps ?payment=approved after the deal moves on, and the slip already
+  // says PayPal is confirming, so this notice is only for an unknown outcome.
+  const paymentAnswered =
+    (paymentResult === "approved" || paymentResult === "processing") &&
+    (paymentInProgress || deal.state !== "AWAITING_PAYMENT");
+  const notice = paymentAnswered ? undefined : paymentResult;
 
   return (
     <div className="space-y-8">
@@ -125,6 +125,7 @@ async function TrustLinkContent({
         state={deal.state}
         deadline={deadline}
         audience="buyer"
+        confirmingPayment={paymentInProgress}
       />
 
       <PaymentNotice status={notice} />
@@ -331,6 +332,8 @@ function BuyerAction({
   sandboxBuyer: SandboxBuyer | null;
 }) {
   if (deal.state === "AWAITING_PAYMENT") {
+    if (paymentInProgress) return null;
+
     return (
       <section aria-labelledby="buyer-action-heading" className="space-y-3">
         <h2
@@ -339,12 +342,7 @@ function BuyerAction({
         >
           Your next step
         </h2>
-        {paymentInProgress ? (
-          <p className="max-w-[65ch] text-[0.9375rem] leading-[1.55] text-ink">
-            {deal.seller.displayName} will see the funds as held after PayPal
-            confirms the capture. Reload this page in a moment.
-          </p>
-        ) : checkoutEnabled ? (
+        {checkoutEnabled ? (
           <>
             <StartCheckoutForm dealId={deal.id} amountCents={deal.priceCents} />
             {sandboxBuyer ? <SandboxBuyerNote buyer={sandboxBuyer} /> : null}

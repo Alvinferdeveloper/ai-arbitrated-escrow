@@ -15,13 +15,14 @@ import { HoldingSlip } from "@/components/holding-slip";
 import { RoleSwitcher } from "@/components/role-switcher";
 import { EvidenceUploadForm } from "@/components/seller/evidence-upload-form";
 import { getDemoDeal } from "@/demo/data";
+import { getCapturePayment } from "@/lib/db/checkout-store";
 import { getTrustLinkDeal } from "@/lib/db/deal-store";
 import { isSupabaseConfigured } from "@/lib/db/server";
 import { holdingSlipDeadline, isPast } from "@/lib/deals/deadline";
 import { dealOutcome } from "@/lib/deals/story";
 import { dealIdSchema } from "@/lib/deals/schema";
 import type { DealView } from "@/lib/deals/types";
-import { isWaitingOnSystem } from "@/lib/state-machine/presentation";
+import { isConfirmingPayment, isWaitingOnSystem } from "@/lib/state-machine/presentation";
 
 export default function SellerDealPage({ params }: PageProps<"/seller/[id]">) {
   return (
@@ -49,14 +50,19 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
   if (!dealIdSchema.safeParse(id).success) notFound();
 
   let deal: DealView | null;
+  let captureStatus: string | null = null;
   try {
     deal = isSupabaseConfigured() ? await getTrustLinkDeal(id) : getDemoDeal(id);
+    if (isSupabaseConfigured() && deal?.state === "AWAITING_PAYMENT") {
+      captureStatus = (await getCapturePayment(id))?.status ?? null;
+    }
   } catch (error) {
     console.error("Could not load the seller deal", error);
     return <SellerDealLoadError />;
   }
   if (!deal) notFound();
 
+  const confirmingPayment = isConfirmingPayment(deal.state, captureStatus);
   const sellerEvidence = deal.evidence.filter((item) => item.slot !== "D");
   // Past the deadline the cron refunds the buyer; the upload route refuses too.
   const deadlinePassed = isPast(deal.evidenceDueAt);
@@ -80,7 +86,10 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
 
   return (
     <div className="mt-4 space-y-8">
-      <DealLiveUpdates dealId={deal.id} waiting={isWaitingOnSystem(deal.state)} />
+      <DealLiveUpdates
+        dealId={deal.id}
+        waiting={confirmingPayment || isWaitingOnSystem(deal.state)}
+      />
       <RoleSwitcher dealId={deal.id} state={deal.state} active="seller" />
       {deal.isExample ? <ExampleDealNotice actions="uploads" /> : null}
       <HoldingSlip
@@ -88,6 +97,7 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         state={deal.state}
         deadline={deal.isExample ? undefined : holdingSlipDeadline(deal)}
         audience="seller"
+        confirmingPayment={confirmingPayment}
       />
 
       <section aria-labelledby="deal-title" className="space-y-2">
@@ -113,7 +123,11 @@ async function SellerDealContent({ params }: Pick<PageProps<"/seller/[id]">, "pa
         ) : null}
       </section>
 
-      {outcome ? <DealOutcomeSection outcome={outcome} /> : <SellerNextStep deal={deal} />}
+      {outcome ? (
+        <DealOutcomeSection outcome={outcome} />
+      ) : confirmingPayment ? null : (
+        <SellerNextStep deal={deal} />
+      )}
 
       {deal.state === "EVIDENCE_REJECTED" && deal.aiDecision && !deadlinePassed ? (
         <AiRetakeRequest decision={deal.aiDecision} />

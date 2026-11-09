@@ -12,6 +12,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import {
+  CONFIRMING_PAYMENT,
   STATE_PRESENTATION,
   type StateIcon,
   type StateTone,
@@ -41,12 +42,14 @@ const TONES: Record<StateTone, string> = {
 
 export function StateStamp({
   state,
+  confirmingPayment = false,
   className = "",
 }: {
   state: DealState;
+  confirmingPayment?: boolean;
   className?: string;
 }) {
-  const presentation = STATE_PRESENTATION[state];
+  const presentation = confirmingPayment ? CONFIRMING_PAYMENT : STATE_PRESENTATION[state];
   const Icon = ICONS[presentation.icon];
 
   return (

@@ -30,6 +30,26 @@ export function isWaitingOnSystem(state: DealState): boolean {
   return STATE_PRESENTATION[state].nextActor === "system";
 }
 
+const CAPTURE_IN_PROGRESS = ["APPROVED", "PENDING", "COMPLETED"];
+
+/**
+ * PayPal has the buyer's payment, but its webhook has not confirmed it yet. Only
+ * what the screens say changes; the deal stays AWAITING_PAYMENT until then.
+ */
+export function isConfirmingPayment(state: DealState, captureStatus: string | null): boolean {
+  return (
+    state === "AWAITING_PAYMENT" &&
+    captureStatus !== null &&
+    CAPTURE_IN_PROGRESS.includes(captureStatus)
+  );
+}
+
+export const CONFIRMING_PAYMENT = {
+  label: "Confirming payment",
+  tone: "postal-ink",
+  icon: "clock",
+} as const satisfies Pick<StatePresentation, "label" | "tone" | "icon">;
+
 export const STATE_PRESENTATION: Record<DealState, StatePresentation> = {
   AWAITING_PAYMENT: {
     label: "Waiting for payment",
@@ -153,6 +173,16 @@ const AUDIENCE_NEXT_ACTION: Record<SlipAudience, Record<DealState, string>> = {
     REFUNDED: "The money was refunded to the buyer.",
   },
 };
+
+const CONFIRMING_PAYMENT_NEXT_ACTION: Record<SlipAudience, string> = {
+  buyer: "PayPal received your payment and is confirming it. Do not pay again; this page updates by itself.",
+  seller:
+    "PayPal is confirming the buyer's payment. You can send the photos once the money is held; this page updates by itself.",
+};
+
+export function confirmingPaymentNextAction(audience: SlipAudience): string {
+  return CONFIRMING_PAYMENT_NEXT_ACTION[audience];
+}
 
 export function nextActionFor(state: DealState, audience?: SlipAudience): string {
   return audience ? AUDIENCE_NEXT_ACTION[audience][state] : STATE_PRESENTATION[state].nextAction;

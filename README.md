@@ -210,7 +210,7 @@ deal row), stores its id on the `payments` row, and redirects to PayPal.
 After approval PayPal returns to `/api/paypal/capture/<deal id>`. That route
 captures the order and marks the payment `PENDING`; the deal becomes
 `FUNDS_HELD` only when the `PAYMENT.CAPTURE.COMPLETED` webhook arrives. If the
-webhook cannot reach your machine, the Trust Link stays on "waiting for PayPal";
+webhook cannot reach your machine, the deal stays on "Confirming payment";
 use a tunnel (ngrok, cloudflared) and point the webhook at
 `https://<tunnel>/api/paypal/webhook`.
 
