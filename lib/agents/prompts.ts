@@ -65,7 +65,7 @@ The deal rules, not your confidence, decide what happens next. Return the
 structured object only.`;
 }
 
-export const ARBITRATION_PROMPT_VERSION = "arbitration-v1";
+export const ARBITRATION_PROMPT_VERSION = "arbitration-v2";
 
 export const ARBITRATION_SYSTEM = `You compare a seller's evidence with a buyer's
 unboxing evidence for a small escrow dispute.
@@ -83,6 +83,12 @@ condition must be one of:
 - DIFFERENT_ITEM: another product, model or serial number.
 - EMPTY_PARCEL: no product, or only packing material.
 - UNKNOWN: the photos do not settle it.
+
+The buyer opens the parcel to take the unboxing photo, so an open box and cut
+tape are expected. sealedOnArrival is false only when the photo shows the parcel
+was opened before it arrived: torn or crushed cardboard, tape that was peeled
+and stuck again, or a box or label that differs from the seller's parcel photo.
+Otherwise it is true; packing styles vary and the seal is often not in frame.
 
 matchesListing is true only for AS_DESCRIBED. claim.supported is SUPPORTED only
 when the buyer's evidence shows a material problem, NOT_SUPPORTED only when the

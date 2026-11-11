@@ -16,6 +16,12 @@ describe("codeMatches", () => {
     expect(codeMatches(" K 7 P 4 ", "K7P4")).toBe(true);
   });
 
+  it("accepts handwriting lookalikes such as an open 4 read as H", () => {
+    expect(codeMatches("K7PH", "K7P4")).toBe(true);
+    expect(codeMatches("K7PL", "K7P4")).toBe(true);
+    expect(codeMatches("BZS6", "825G")).toBe(true);
+  });
+
   it("rejects a missing or different code", () => {
     expect(codeMatches(null, "K7P4")).toBe(false);
     expect(codeMatches("K7P5", "K7P4")).toBe(false);

@@ -11,9 +11,20 @@ export function normalizeCode(value: string | null): string {
   return (value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
+// Characters a handwritten code turns into for a reader: an open 4 reads as H, A
+// or L. The code proves the photos were taken for this deal, so accepting a
+// lookalike barely weakens it, while rejecting one blocks an honest seller.
+const HANDWRITING_LOOKALIKES = ["4AHL", "5S", "2Z", "8B", "6G"];
+
+function canonicalCode(value: string | null): string {
+  return [...normalizeCode(value)]
+    .map((char) => HANDWRITING_LOOKALIKES.find((group) => group.includes(char))?.[0] ?? char)
+    .join("");
+}
+
 export function codeMatches(read: string | null, expected: string): boolean {
-  const target = normalizeCode(expected);
-  return target.length > 0 && normalizeCode(read) === target;
+  const target = canonicalCode(expected);
+  return target.length > 0 && canonicalCode(read) === target;
 }
 
 function startOfUtcDay(date: Date): number {
