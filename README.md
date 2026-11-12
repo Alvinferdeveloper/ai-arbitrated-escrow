@@ -6,6 +6,37 @@ Built for the PayPal AI Hackathon. Sandbox only: no real money moves.
 **Live demo:** https://evenhand-escrow.vercel.app. No sign-up; see
 [Test credentials](#test-credentials) for a five-minute walkthrough.
 
+## Why it exists
+
+Two strangers agree on a sale through an online listing. The buyer fears paying
+for an empty box; the seller fears shipping and then hearing the box arrived
+empty. On a 25 dollar sale nobody can pay a person to judge that argument, so
+the sale does not happen.
+
+Evenhand sits between them:
+
+1. The buyer pays with PayPal and the platform holds the money.
+2. The seller sends three photos: the item, the item in its box, and the sealed
+   parcel with its label, with a code from the deal handwritten in two of them.
+3. A vision model reads the label and compares the item with the listing.
+   Explicit rules, not a confidence score, decide: ship, ask for specific new
+   photos, or cancel and refund the buyer.
+4. The seller is paid on receipt or after a deadline. In a dispute the AI
+   compares both sides' photos and releases or refunds on its own; only a real
+   contradiction goes to a human mediator.
+
+The money moves last: a deal is held, released or refunded only when PayPal's
+webhook confirms it, and only the state machine can call the payout and refund
+APIs.
+
+### How often the AI is wrong
+
+Over three runs of the 12-case eval (36 decisions) with real photos and the
+production model, no fraudulent or broken deal was let through (0 of 27), and
+34 of 36 decisions were correct. Both misses were the same honest dispute with a
+dim unboxing photo, sent to a person instead of paying the seller. See
+[Eval](#eval).
+
 ## Run locally
 
 ```bash
