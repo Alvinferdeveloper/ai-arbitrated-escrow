@@ -36,19 +36,28 @@ describe("formatDeadline", () => {
 
 describe("holdingSlipDeadline", () => {
   it("says what happens once a deadline has passed", () => {
-    expect(holdingSlipDeadline({ evidenceDueAt: inMs(-1), autoReleaseAt: null }, now)).toBe(
+    expect(holdingSlipDeadline({ state: "FUNDS_HELD", evidenceDueAt: inMs(-1), autoReleaseAt: null }, now)).toBe(
       "Evidence deadline passed, refund starting",
     );
-    expect(holdingSlipDeadline({ evidenceDueAt: null, autoReleaseAt: inMs(-1) }, now)).toBe(
+    expect(holdingSlipDeadline({ state: "SHIPPED", evidenceDueAt: null, autoReleaseAt: inMs(-1) }, now)).toBe(
       "Auto-release due, payout starting",
     );
   });
 
   it("prefers the evidence deadline and has none otherwise", () => {
     expect(
-      holdingSlipDeadline({ evidenceDueAt: inMs(60_000), autoReleaseAt: inMs(120_000) }, now),
+      holdingSlipDeadline(
+        { state: "FUNDS_HELD", evidenceDueAt: inMs(60_000), autoReleaseAt: inMs(120_000) },
+        now,
+      ),
     ).toBe("Evidence due in 1m");
-    expect(holdingSlipDeadline({ evidenceDueAt: null, autoReleaseAt: null }, now)).toBeUndefined();
+    expect(holdingSlipDeadline({ state: "SHIPPED", evidenceDueAt: null, autoReleaseAt: null }, now)).toBeUndefined();
+  });
+
+  it("shows no auto-release once a dispute stops it", () => {
+    for (const state of ["DISPUTED", "ARBITRATING", "ESCALATED"] as const) {
+      expect(holdingSlipDeadline({ state, evidenceDueAt: null, autoReleaseAt: inMs(60_000) }, now)).toBeUndefined();
+    }
   });
 });
 

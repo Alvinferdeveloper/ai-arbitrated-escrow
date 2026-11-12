@@ -28,14 +28,15 @@ export function formatDeadline(
 
 /** The countdown the Holding Slip shows: evidence first, then auto-release. */
 export function holdingSlipDeadline(
-  deal: { evidenceDueAt: Date | null; autoReleaseAt: Date | null },
+  deal: { state: DealState; evidenceDueAt: Date | null; autoReleaseAt: Date | null },
   now: Date = new Date(),
 ): string | undefined {
   // Past the deadline the cron acts within minutes; say what happens next.
   if (deal.evidenceDueAt) {
     return formatDeadline(deal.evidenceDueAt, now, "Evidence due", "Evidence deadline passed, refund starting");
   }
-  if (deal.autoReleaseAt) {
+  // A dispute keeps the stored deadline, but only a shipped deal is released by it.
+  if (deal.autoReleaseAt && deal.state === "SHIPPED") {
     return formatDeadline(deal.autoReleaseAt, now, "Auto-release", "Auto-release due, payout starting");
   }
   return undefined;
