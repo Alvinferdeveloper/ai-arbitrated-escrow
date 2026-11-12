@@ -3,7 +3,8 @@
 Escrow and AI evidence arbitration for peer-to-peer sales on PayPal.
 Built for the PayPal AI Hackathon. Sandbox only: no real money moves.
 
-> Working title. The final name is set in `lib/config.ts`.
+**Live demo:** https://evenhand-escrow.vercel.app. No sign-up; see
+[Test credentials](#test-credentials) for a five-minute walkthrough.
 
 ## Run locally
 
@@ -289,7 +290,40 @@ add a vendor with its own SDK, add one entry to `PROVIDERS` in `provider.ts`.
 
 ## Test credentials
 
-To be added: sandbox buyer account, demo mode instructions.
+The live demo runs in demo mode against the PayPal sandbox, so nothing needs to
+be installed and no real money moves.
+
+- **App:** https://evenhand-escrow.vercel.app. There is no sign-in; the **View
+  as** switcher on every deal moves between buyer, seller and mediator.
+- **PayPal buyer:** a sandbox personal account. Its email and password are shown
+  on the Trust Link, under the **Pay 25.00 USD with PayPal** button. Log in to PayPal with
+  them when checkout opens.
+- **Seller payouts** go to a sandbox personal account, so releases complete in
+  PayPal too.
+
+### Walkthrough
+
+1. On the landing page, select **Try a sample deal**, then **Create the deal**.
+2. Switch to **Buyer**, select **Pay 25.00 USD with PayPal** and pay with the sandbox
+   buyer. Back on the deal, the slip reads **Confirming payment** until PayPal's
+   webhook arrives (about 20 seconds), then **Funds held**.
+3. Switch to **Seller** and pick a sample set, then **Send for audit**. The AI
+   answers in about 20 seconds:
+   - **Honest shipment:** the audit passes and the deal ships.
+   - **Wrong weight:** the guide weight does not fit the product, so the AI asks
+     for a new guide photo.
+   - **Different product:** photo A shows another product, so the AI cancels the
+     deal and PayPal refunds the buyer.
+4. After an honest shipment, either wait: the seller is paid automatically
+   about two minutes later. Or, as the buyer, open **Something is wrong with the
+   parcel** right away and pick an unboxing photo:
+   - **Item arrived:** the photo contradicts the claim, so the AI pays the seller.
+   - **Empty box:** the photo contradicts the seller's parcel, so the case goes
+     to the mediator, who releases or refunds from `/mediator`.
+
+Demo timers are short: the seller has 10 minutes to send photos and the buyer
+about two minutes to dispute before the auto-release. `/deals` lists every deal,
+including read-only examples of each step.
 
 ## License
 
