@@ -32,7 +32,7 @@ const STEPS = [
   {
     title: "The seller proves the parcel",
     body: "Three photos: the item, the item in its box, and the sealed parcel with its shipping label. In about 20 seconds the AI clears the deal to ship, asks for a new photo, or refunds the buyer.",
-    tryIt: "Switch to the seller view and send the photos, or a sample set if one is listed.",
+    tryIt: "Switch to the seller view, pick a sample set and send it for audit. No photos to take.",
   },
   {
     title: "The money moves last",
