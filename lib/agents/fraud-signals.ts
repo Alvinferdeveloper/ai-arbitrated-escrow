@@ -11,10 +11,10 @@ export function normalizeCode(value: string | null): string {
   return (value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
-// Characters a handwritten code turns into for a reader: an open 4 reads as H, A
-// or L. The code proves the photos were taken for this deal, so accepting a
+// Characters a handwritten code turns into for a reader: an open 4 reads as H, A,
+// L, U or Y. The code proves the photos were taken for this deal, so accepting a
 // lookalike barely weakens it, while rejecting one blocks an honest seller.
-const HANDWRITING_LOOKALIKES = ["4AHL", "5S", "2Z", "8B", "6G"];
+const HANDWRITING_LOOKALIKES = ["4AHLUY", "5S", "2Z", "8B", "6G"];
 
 function canonicalCode(value: string | null): string {
   return [...normalizeCode(value)]
