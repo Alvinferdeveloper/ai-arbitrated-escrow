@@ -29,6 +29,19 @@ The money moves last: a deal is held, released or refunded only when PayPal's
 webhook confirms it, and only the state machine can call the payout and refund
 APIs.
 
+<!--
+Screenshots: save each PNG in public/readme/ with the name shown, then delete
+this comment's opening and closing lines so the table renders.
+
+| Landing | Buyer pays with PayPal |
+| --- | --- |
+| ![Landing page](public/readme/landing.png) | ![Trust Link with funds held](public/readme/funds-held.png) |
+| **AI audit report** | **Dispute settled by the AI** |
+| ![Audit report after the seller's photos](public/readme/audit-report.png) | ![Buyer dispute released to the seller](public/readme/dispute.png) |
+| **Mediator queue** | **Mediator case** |
+| ![Mediator queue built with AG Grid](public/readme/mediator-queue.png) | ![Mediator case with both sides' evidence](public/readme/mediator-case.png) |
+-->
+
 ### How often the AI is wrong
 
 Over three runs of the 12-case eval (36 decisions) with real photos and the
