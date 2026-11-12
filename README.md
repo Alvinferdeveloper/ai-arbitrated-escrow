@@ -210,6 +210,10 @@ honest guide must show 0.35 kg.
 
 ## Eval
 
+![Eval results: 0 of 27 frauds let through, 34 of 36 correct decisions](public/readme/eval-results.png)
+
+Latest run: 12 cases, 3 runs each, with the sample photos and Qwen3.8-27B.
+
 `pnpm eval` runs 12 cases (`evals/cases.ts`) through the production audit,
 arbitration and rules with the real model. It stops before the state machine, so
 it creates no deals and calls no PayPal API. It needs the `AI_*` variables and
